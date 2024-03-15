@@ -10,10 +10,10 @@ mainly on Linux systems. Though Unix-like system should also work.
 ```bash
 git clone http://github.com/yimuchen/gui_example
 
-cd gui_discuss
+cd gui_example
 conda env create -f ./environment.yml
 conda activate qca_control
-python -m pip install -e ./
+CC=$(which clang) CXX=$(which clang++) python3 -m pip install -e ./
 ```
 
 Once the install has been done you should be able to consistently setup the
@@ -21,7 +21,8 @@ environment by starting the `conda` environment.
 
 ```bash
 conda activate qca_control
-python ./bin/run_cli.py --help
+cd gui_example
+python3 ./bin/run_cli.py --help
 ```
 
 ## Adding procedures (for physicists)
@@ -74,3 +75,4 @@ If there are any feature requests, feel free to add a issue on GitHub
   not met.
 - Multiple procedure running (how do we define multi-procedures?)
 
+[conda]: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
