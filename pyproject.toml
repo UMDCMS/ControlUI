@@ -1,0 +1,30 @@
+[project]
+name = "qcmanager"
+dependencies = [
+  "uproot==4.3.7",
+  "awkward==1.10.4",
+  "pyyaml",
+  "tqdm",
+  "zmq",
+  # For GUI
+  "matplotlib",
+  "PyQt5",
+]
+dynamic = ["version"]
+
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel",
+    "pybind11"
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.dynamic]
+version = {attr = "qcmanager.__version__"}
+
+[tool.flake8]
+max-line-length = 120

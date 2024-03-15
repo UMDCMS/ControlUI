@@ -1,0 +1,25 @@
+name: qca_control
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  # For C/C++ build dependencies, pinning to a older stable version for now
+  - boost=1.82
+  - clangxx=17
+  - pybind11
+  # Python requirements - Pinning to older version of package for now
+  # Explicit requirements should be listed in the
+  - python=3.10 # Pinning to python3.10 for now
+  - numpy
+  - scipy
+  # QT required for GUI
+  # Must be installed under the same conda (not PIP!) to ensure that libraries
+  # have compatible version.
+  - qt-wayland
+  - pyqt
+
+  # Python formatting and linting utilities
+  # - black
+  # - flake8
+  # Required for nodejs
+  # - nodejs=18.18.2

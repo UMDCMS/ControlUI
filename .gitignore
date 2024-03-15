@@ -1,0 +1,6 @@
+# Ignoring build related items
+build/*
+src/*.egg*
+__pycache__/
+*.so
+*.pdf
