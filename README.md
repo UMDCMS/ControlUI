@@ -8,7 +8,7 @@ You system must have [`conda`][conda] installed, this setup has been tested
 mainly on Linux systems. Though Unix-like system should also work.
 
 ```bash
-git clone http://github.com/yimuchen/gui_discuss
+git clone http://github.com/yimuchen/gui_example
 
 cd gui_discuss
 conda env create -f ./environment.yml
