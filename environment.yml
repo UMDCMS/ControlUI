@@ -14,12 +14,7 @@ dependencies:
   - scipy
   # QT required for GUI
   # Must be installed under the same conda (not PIP!) to ensure that libraries
-  # have compatible version.
-  - qt-wayland
-  - pyqt
-
-  # Python formatting and linting utilities
-  # - black
-  # - flake8
-  # Required for nodejs
-  # - nodejs=18.18.2
+  # have compatible version. If you are running OSX, manually remove the
+  # qt-wayland line for the instances to complete
+  - qt-wayland=5.15.8
+  - pyqt=5.15
