@@ -29,7 +29,7 @@ python ./bin/run_cli.py --help
 To add a procedure routine to system, consult the documentation in the
 [procedures](src/qcmanager/procedures) directory. If you want to also add plots
 to be automatically presented to the user, consult the documentation in the
-[plotting](src/qcmanager/procedures).
+[plotting](src/qcmanager/plotting).
 
 
 ## Core developement philosophies
