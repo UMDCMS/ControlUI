@@ -17,8 +17,5 @@ if __name__ == "__main__":
     # Here we initialize the main window
     window, session = qcmanager.qt_gui.create_default_window()
 
-    session.load_yaml("results/1234.5678/session.yaml")
-    session.refresh()
-
     window.show()
     sys.exit(app.exec_())
