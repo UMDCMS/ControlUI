@@ -93,8 +93,9 @@ class ProcedureBase(object):
 
     def open_text_file(self, path, desc, **kwargs) -> io.TextIOWrapper:
         """Opening a file to be written, Automatically adding this to be entry"""
-        self.result.data_files.append(DataEntry(path=path, desc=desc, **kwargs))
-        return open(self.full_path(self.result.last_data))
+        full_path = self.make_store_path(path)
+        self.result.data_files.append(DataEntry(path=full_path, desc=desc, **kwargs))
+        return open(full_path, "w")
 
     """
     Additional methods used for logging message (avoid using raw prints!!)

@@ -19,7 +19,7 @@ class dummy_process2(ProcedureBase):
 
     outer_size: Annotated[int, "Size of outer loop"] = 5
     inner_size: Annotated[int, "Size of inner loop"] = 10
-    pause: Annotated[float, "Time between loops"] = 0.1
+    pause: Annotated[float, "Time between loops"] = 0.01
 
     def run(
         self,
@@ -35,10 +35,13 @@ class dummy_process2(ProcedureBase):
             for __ in iterate(range(self.inner_size), desc="Inner loop"):
                 time.sleep(self.pause)
 
-        self.result.board_summary = SingularResult(
-            0, "SUCCESS", channel=SingularResult.BOARD
-        )
+        with self.open_text_file("mytest.txt", desc="Just for demonstration") as f:
+            f.write("I want this to be written")
+
         self.result.channel_summary = [
             SingularResult(0, "SUCESS", channel=c) for c in range(72)
         ]
+        self.result.board_summary = SingularResult(
+            0, "SUCCESS", channel=SingularResult.BOARD
+        )
         return self.result
