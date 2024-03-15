@@ -29,7 +29,6 @@ else:
 # Running some instance #####################################
 # session.handle_procedure(
 #    qcmanager.procedures.pedestal_correction,
-#    interfaces=(session.tb_conroller, session.iterate, session.results),
 #    procedure_arguments=dict(
 #        target_pedestal=70,
 #        n_events=2000,
@@ -37,11 +36,11 @@ else:
 # )
 session.handle_procedure(
     qcmanager.procedures.dummy_procedure,
-    procedure_arguments=dict(target=70),
+    procedure_arguments=dict(target=70, pause=0.2),
 )
 session.handle_procedure(
     qcmanager.procedures.dummy_process2,
-    procedure_arguments=dict(pause=0.003),
+    procedure_arguments=dict(pause=0.1),
 )
 
 # Saving the session
