@@ -2,6 +2,7 @@ import glob
 import os
 
 import yaml
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QFormLayout,
     QGroupBox,
@@ -13,8 +14,8 @@ from PyQt5.QtWidgets import (
 )
 
 from ...utils import _str_
-from ..gui_session import (
-    GUISession,
+from ..gui_session import GUISession
+from ..qt_helper import (
     _QComboPlaceholder,
     _QConfirmationDialog,
     _QContainer,
@@ -56,6 +57,7 @@ class SessionLoader(_QContainer):
         self.__init_layout__()
         self._display_update()
 
+    @_QContainer.gui_action
     def __init_layout__(self):
         self._box_outer = QVBoxLayout()
         self._box_inner = QVBoxLayout()
@@ -63,19 +65,31 @@ class SessionLoader(_QContainer):
 
         # Items for loading in a new session
         self._load_new_box = QGroupBox("Load new session")
-        self._load_new_box_layout = QFormLayout()
-        self._load_new_box_layout.addRow("Board type", self.load_new_type_input)
-        self._load_new_box_layout.addRow("Board id", self.load_new_id_input)
-        self._load_new_box_layout.addRow("", self.load_new_button)
+        self._load_new_box_layout = QHBoxLayout()
+        self._new_type_label = QLabel("Type")
+        self._new_type_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self._load_new_box_layout.addWidget(self._new_type_label, stretch=5)
+        self._load_new_box_layout.addWidget(self.load_new_type_input, stretch=50)
+        self._load_new_box_layout.addWidget(QLabel(""), stretch=5)
+        self._new_id_label = QLabel("ID")
+        self._new_id_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self._load_new_box_layout.addWidget(self._new_id_label, stretch=5)
+        self._load_new_box_layout.addWidget(self.load_new_id_input, stretch=50)
+        self._load_new_box_layout.addWidget(self.load_new_button, stretch=25)
         self._load_new_box.setLayout(self._load_new_box_layout)
-        self._action_layout.addWidget(self._load_new_box, stretch=1)
 
         # Items for laoding in an existing session
         self._load_existing_box = QGroupBox("Load existing session")
-        self._load_existing_box_layout = QFormLayout()
-        self._load_existing_box_layout.addRow("Session file", self.load_existing_input)
-        self._load_existing_box_layout.addRow("", self.load_existing_button)
+        self._load_existing_box_layout = QHBoxLayout()
+        self._load_existing_label = QLabel("Session file")
+        self._load_existing_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self._load_existing_box_layout.addWidget(self._load_existing_label, stretch=10)
+        self._load_existing_box_layout.addWidget(self.load_existing_input, stretch=20)
+        self._load_existing_box_layout.addWidget(self.load_existing_button, stretch=10)
         self._load_existing_box.setLayout(self._load_existing_box_layout)
+
+        # Loading instructions boxes
+        self._action_layout.addWidget(self._load_new_box, stretch=1)
         self._action_layout.addWidget(self._load_existing_box, stretch=1)
 
         # Items for current summary
@@ -91,12 +105,14 @@ class SessionLoader(_QContainer):
         self._box_outer.addWidget(self.box)
         self.setLayout(self._box_outer)
 
+    @_QContainer.gui_action
     def _display_update(self):
         self._update_summary()
         self._update_templates()
         self._update_existing()
 
-    def _update_summary(self):
+    @_QContainer.gui_action
+    def _update_summary(self, event=None):
         """Show basic information of currect session"""
         if self.session.board_id == "" or self.session.board_type == "":
             self.box.setTitle("Session (none loaded)")
@@ -125,7 +141,8 @@ class SessionLoader(_QContainer):
         )
         self.update_label.setText("<b>Last update:</b>" + time_str)
 
-    def _update_templates(self):
+    @_QContainer.gui_action
+    def _update_templates(self, event=None):
         """Getting available template sessions"""
         self.load_new_type_input.clear()
         with open("configurations/tileboard_layouts.yaml", "r") as f:
@@ -134,7 +151,8 @@ class SessionLoader(_QContainer):
             self.load_new_type_input.addItem(f)
         self.load_new_button.setDisabled(True)  # Disable by default
 
-    def _update_existing(self):
+    @_QContainer.gui_action
+    def _update_existing(self, event=None):
         self.load_existing_input.clear()
         template_files = glob.glob("results/*")
         template_files = sorted([os.path.basename(x) for x in template_files])
@@ -142,7 +160,8 @@ class SessionLoader(_QContainer):
             self.load_existing_input.addItem(f)
         self.load_existing_button.setDisabled(True)  # Disable by default
 
-    def check_new_inputs(self):
+    @_QContainer.gui_action
+    def check_new_inputs(self, event=None):
         new_type = self.load_new_type_input.currentText()
         new_id = self.load_new_id_input.text()
 
@@ -156,7 +175,8 @@ class SessionLoader(_QContainer):
         self.load_new_button.session_config_valid = _is_valid_type() and _is_valid_id()
         self.load_new_button._display_update()
 
-    def check_existing_inputs(self):
+    @_QContainer.gui_action
+    def check_existing_inputs(self, events=None):
         session_file = self.load_existing_input.currentText()
 
         def _is_valid_session():
@@ -184,7 +204,7 @@ class SessionLoader(_QContainer):
             _load_blank()
 
     @_QContainer.gui_action
-    def load_existing(self, event=False):
+    def load_existing(self, event=None):
         target = self.load_existing_input.currentText()
         target_yaml = f"{self.session.LOCAL_STORE}/{target}/session.yaml"
 

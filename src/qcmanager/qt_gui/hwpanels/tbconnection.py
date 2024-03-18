@@ -6,15 +6,8 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
-from ..gui_session import (
-    GUISession,
-    _QContainer,
-    _QLineEditDefault,
-    _QRunButton,
-    _QSpinBoxDefault,
-)
-
-# from ...format import _str_
+from ..gui_session import GUISession
+from ..qt_helper import _QContainer, _QLineEditDefault, _QRunButton, _QSpinBoxDefault
 
 
 class _PortSpinBox(_QSpinBoxDefault):

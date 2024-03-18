@@ -1,10 +1,11 @@
-from PyQt5.QtWidgets import QGroupBox, QPushButton, QVBoxLayout
+from PyQt5.QtWidgets import QGroupBox, QVBoxLayout
 
-from ..gui_session import _QContainer, _QRunButton
+from ..gui_session import GUISession
+from ..qt_helper import _QContainer, _QRunButton
 
 
 class TempSensorPanel(_QContainer):
-    def __init__(self, session):
+    def __init__(self, session: GUISession):
         super().__init__(session)
 
         self._outer = QVBoxLayout(self)

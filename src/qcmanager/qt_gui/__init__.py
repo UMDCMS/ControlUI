@@ -3,27 +3,38 @@ from typing import Tuple
 from PyQt5.QtWidgets import QHBoxLayout, QMainWindow, QVBoxLayout
 
 from . import gui_session, hwpanels, session_browser
+from .qt_helper import _QContainer
 
 
 def create_default_window() -> Tuple[QMainWindow, gui_session.GUISession]:
     session = gui_session.GUISession()
-    session.hw_column = gui_session._QContainer(session)
+
+    # Creating the various containers
     session.tb_panel = hwpanels.tbconnection.TBConnectionPanel(session)
     session.temp_panel = hwpanels.temp_sensor.TempSensorPanel(session)
-    session.hw_layout = QVBoxLayout()
-    session.hw_layout.addWidget(session.tb_panel)
-    session.hw_layout.addWidget(session.temp_panel)
-    session.hw_column.setLayout(session.hw_layout)
+    session.loader = session_browser.SessionLoader(session)
+    session.procedures = session_browser.SessionProcedureDisplay(session)
+    session.singlerun = session_browser.SessionRunSingleProcedure(session)
+    session.message_container = session_browser.SessionMessageDisplay(session)
 
-    session.browse_column = session_browser.outer_container.SessionBrowserContainer(
-        session
-    )
+    # Defining the layout
+    session._hw_layout = QVBoxLayout()
+    session._hw_layout.addWidget(session.tb_panel)
+    session._hw_layout.addWidget(session.temp_panel)
 
-    session.column_layout = QHBoxLayout()
-    session.column_layout.addWidget(session.hw_column, stretch=0)
-    session.column_layout.addWidget(session.browse_column, stretch=3)
-    session.setLayout(session.column_layout)
+    session._ses_layout = QVBoxLayout()
+    session._ses_layout.addWidget(session.loader)
+    session._ses_layout.addWidget(session.procedures)
+    session._ses_layout.addWidget(session.singlerun)
+    session._ses_layout.addWidget(session.message_container)
+    session._ses_layout.addStretch()
 
+    session._outer_layout = QHBoxLayout()
+    session._outer_layout.addLayout(session._hw_layout, stretch=0)
+    session._outer_layout.addLayout(session._ses_layout, stretch=3)
+    session.setLayout(session._outer_layout)
+
+    # Setting up the main window to be returned
     window = QMainWindow()
     window.setCentralWidget(session)
 

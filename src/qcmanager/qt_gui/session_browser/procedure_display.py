@@ -1,5 +1,5 @@
 import importlib
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 import matplotlib.backends.backend_qt5agg
 from PyQt5.QtCore import QAbstractTableModel, Qt
@@ -18,7 +18,8 @@ from PyQt5.QtWidgets import (
 
 from ...utils import timestampg
 from ...yaml_format import ProcedureResult, SingularResult
-from ..gui_session import GUISession, _QContainer, clear_layout
+from ..gui_session import GUISession
+from ..qt_helper import _QContainer, clear_layout
 
 # Aliases for simpler declaration
 FigureCanvas = matplotlib.backends.backend_qt5agg.FigureCanvasQTAgg
@@ -28,19 +29,25 @@ NavigationToolbar = matplotlib.backends.backend_qt5agg.NavigationToolbar2QT
 class MplCanvasWidget(QWidget):
     def __init__(self, figure):
         super().__init__()
-        self._layout = QVBoxLayout()
+        self._layout = QHBoxLayout()
         self.setLayout(self._layout)
 
         self._canvas = FigureCanvas(figure)
         self._toolbar = NavigationToolbar(self._canvas)
-        self._layout.addWidget(self._toolbar)
+        self._toolbar.setOrientation(Qt.Vertical)
         self._layout.addWidget(self._canvas)
+        self._layout.addWidget(self._toolbar)
 
 
 class SessionProcedureDisplay(_QContainer):
     def __init__(self, session: GUISession):
         super().__init__(session)
 
+        self.detail_display = ProcedureDetailDisplay(self.session)
+        self.list_display = ProcudureSummaryList(self.session, self.detail_display)
+        self.__init_layout__()
+
+    def __init_layout__(self):
         self._outer = QVBoxLayout()
         self._box = QGroupBox("QA/QC Procedure results")
         self._inner = QHBoxLayout()
@@ -48,53 +55,220 @@ class SessionProcedureDisplay(_QContainer):
         self._outer.addWidget(self._box)
         self._box.setLayout(self._inner)
 
-        self._detail_display = ProcedureDetailDisplay(self.session)
-        self._list_display = ProcudureSummaryList(self.session, self._detail_display)
-        self._inner.addWidget(self._list_display, stretch=1)
-        self._inner.addWidget(self._detail_display, stretch=2)
+        self._inner.addWidget(self.list_display, stretch=1)
+        self._inner.addWidget(self.detail_display, stretch=2)
+
+
+class ProcedureTextDisplay(_QContainer):
+    def __init__(self, session: GUISession):
+        super().__init__(session)
+        self.result = None
+
+        # For overall results
+        self.name_label = QLabel("")
+        self.start_label = QLabel("")
+        self.end_label = QLabel("")
+        self.logical_label = QLabel("")
+        self.procedure_args_layout = QFormLayout()
+        self.board_summary_layout = QFormLayout()
+
+        # For channel overview and details
+        self.channel_overview = QGridLayout()
+        self.channel_detail_container = QVBoxLayout()
+        self.channel_mapping = {}
+
+        self.__init_layout__()
+
+    def __init_layout__(self):
+        self._layout = QHBoxLayout()
+
+        # Adding the various items
+        self._board_column = QFormLayout()
+        self._board_column.addRow("Procedure name", self.name_label)
+        self._board_column.addRow("Start time", self.start_label)
+        self._board_column.addRow("End time", self.end_label)
+        self._board_column.addRow("Logical status", self.logical_label)
+        self._board_column.addRow("Procedure arguments", self.procedure_args_layout)
+        self._board_column.addRow("Board summary", self.board_summary_layout)
+
+        self._channel_column = QVBoxLayout()
+        self._channel_column.addWidget(QLabel("<b>Channel overview</b>"))
+        self._channel_column.addLayout(self.channel_overview)
+        self._channel_column.addWidget(QLabel("<b>Per-channel details</b>"))
+        self._channel_column.addLayout(self.channel_detail_container)
+        self._channel_column.addStretch()
+
+        self._layout.addLayout(self._board_column, stretch=10)
+        self._layout.addStretch()
+        self._layout.addLayout(self._channel_column, stretch=10)
+        self.setLayout(self._layout)
+
+    def display_result(self, result: Optional[ProcedureResult] = None):
+        self.result = result
+        self._display_update()
+
+    def _display_update(self):
+        # Updating the various items
+        if self.result is None:
+            return
+        self._display_update_board()
+        self._display_update_channel()
+
+    def _display_update_board(self):
+        self.name_label.setText(self.result.name)
+        self.start_label.setText(timestampg(self.result.start_time))
+        self.end_label.setText(timestampg(self.result.end_time))
+        self.logical_label.setText(
+            "Complete"
+            if self.result.status_code[0] == 0
+            else f"[{self.result.status_code}] {self.result.status_code[1]} "
+        )
+        clear_layout(self.procedure_args_layout)
+        for k, v in self.result.input.items():
+            self.procedure_args_layout.addRow(k, QLabel(str(v)))
+        # Board level summary
+        clear_layout(self.board_summary_layout)
+        self.board_summary_layout.addRow(
+            "Status",
+            self.status_summary_label(self.result.board_summary),
+        )
+        for k, v in self.result.board_summary.__dict__.items():
+            if k == "status" or k == "desc" or k == "channel":
+                continue
+            self.board_summary_layout.addRow(k, QLabel(str(v)))
+
+    def _display_update_channel(self):
+        clear_layout(self.channel_overview)
+        clear_layout(self.channel_detail_container.layout())
+        self.channel_mapping = {}
+
+        def channel_detail_widget(r: SingularResult):
+            container = QWidget()
+            layout = QFormLayout()
+            layout.addRow("Channel", QLabel(str(res.channel)))
+            layout.addRow("Status", self.status_summary_label(res))
+            for k, v in r.__dict__.items():
+                if k == "status" or k == "desc" or k == "channel":
+                    continue
+                layout.addRow(k, QLabel(str(v)))
+            container.setLayout(layout)
+            container.hide()
+            return container
+
+        def show_index(channel: int):
+            def _wrap(event=False):
+                for container in self.channel_mapping.values():
+                    container.hide()
+                self.channel_mapping[channel].show()
+
+            return _wrap
+
+        for idx, res in enumerate(self.result.channel_summary):
+            summary = QLabel(str(res.channel))
+            summary.setStyleSheet(self.error_styling(res))
+            summary.setAlignment(Qt.AlignHCenter)
+            self.channel_overview.addWidget(summary, idx // 8, idx % 8)
+
+            detail = channel_detail_widget(res)
+            self.channel_detail_container.addWidget(detail)
+            self.channel_mapping[res.channel] = detail
+            summary.mousePressEvent = show_index(res.channel)
+
+    @classmethod
+    def error_styling(self, r: SingularResult):
+        return "background-color: green" if r.status == 0 else "background-color: red"
+
+    @classmethod
+    def status_summary_label(cls, r: SingularResult):
+        label = QLabel("Good" if r.status == 0 else f"[{r.status}] {r.desc}")
+        label.setStyleSheet(cls.error_styling(r))
+        return label
+
+
+class ProcedurePlotDisplay(_QContainer):
+    def __init__(self, session: GUISession):
+        super().__init__(session)
+        self.result = None
+        self.__init_layout__()
+
+    def __init_layout__(self):
+        self._layout = QVBoxLayout()
+        self.setLayout(self._layout)
+
+    def display_result(self, result: Optional[ProcedureResult] = None):
+        self.result = result
+        self._display_update()
+
+    def _display_update(self):
+        clear_layout(self._layout)
+        if self.result is None:
+            return  # Early exist
+        try:
+            plotlib = importlib.import_module(f"qcmanager.plotting.{self.result.name}")
+        except Exception:
+            self._layout.addWidget(
+                QLabel(f"No plotting methods for procedure [{self.result.name}] found")
+            )
+            return
+
+        plot_view = QTabWidget()
+        plot_view.setMinimumWidth(800)
+        plot_view.setMinimumHeight(400)
+        plot_view.setTabPosition(QTabWidget.TabPosition.West)
+        plotter = getattr(plotlib, self.result.name)(self.session.save_base)
+
+        for p_name, p_func in plotter.figure_methods.items():
+            figure_widget = self._make_single_figure(p_name, p_func)
+            plot_view.addTab(figure_widget, p_name.replace("_", " "))
+        self._layout.addWidget(plot_view)
+
+    def _make_single_figure(self, plot_name: str, plot_function: Callable):
+        try:
+            return MplCanvasWidget(plot_function(self.result))
+        except Exception as err:
+            msg = [
+                "Failed to generate plot",
+                f"Check function from plotting.{self.result.name}.fig_{plot_name}",
+                f"Message: {str(err)}",
+            ]
+            return QLabel("\n".join(msg))
 
 
 class ProcedureDetailDisplay(_QContainer):
     def __init__(self, session: GUISession):
         super().__init__(session)
 
-        self._outer = QVBoxLayout()
-        self._box = QGroupBox("Detailed results")
-        self._inner = QHBoxLayout()
-
-        self._text_display_container = QVBoxLayout()
-        self.text_display = QFormLayout()
-        self._text_details_box = QGroupBox("Item details")
-        self.text_details = QFormLayout()
-        self._text_display_container.addLayout(self.text_display)
-        self._text_display_container.addWidget(self._text_details_box)
-        self._text_details_box.setLayout(self.text_details)
-        self._plot_display_box = QGroupBox("Plots")
-        self._plot_display_layout = QVBoxLayout()
-        self._plot_display_box.setLayout(self._plot_display_layout)
-
-        self._inner.addLayout(self._text_display_container)
-        self._inner.addWidget(self._plot_display_box)
-
-        self._box.setLayout(self._inner)
-        self._outer.addWidget(self._box)
-        self.setLayout(self._outer)
-
-        # Special item storing the current display format
-        self.result = None
+        self.text_display = ProcedureTextDisplay(self.session)
+        self.plot_display = ProcedurePlotDisplay(self.session)
+        self.blank_msg = QLabel("No result (select from left table)")
+        self.__init_layout__()
 
         # Initial item
         self.display_result()
 
+    def __init_layout__(self):
+        self._tabcontainer = QTabWidget()
+        self._tabcontainer.addTab(self.text_display, "Settings and summary")
+        self._tabcontainer.addTab(self.plot_display, "Plots")
+
+        self._layout = QVBoxLayout()
+        self._layout.addWidget(self._tabcontainer)
+        self._layout.addWidget(self.blank_msg)
+        self.setLayout(self._layout)
+
+        # By default set tabe widget to be blank
+        self._tabcontainer.hide()
+
     def display_result(self, index: Optional[int] = None):
         if index is None:
-            self.text_display.addWidget(QLabel("Select from left"))
-            self._plot_display_layout.addWidget(QLabel("None selected"))
-            self.text_details.addWidget(QLabel("None selected"))
+            self._tabcontainer.hide()
+            self.blank_msg.show()
         else:
-            self.result = self.session.results[index]
-            self.display_text_results()
-            self.display_plot_results()
+            result = self.session.results[index]
+            self._tabcontainer.show()
+            self.blank_msg.hide()
+            self.text_display.display_result(result)
+            self.plot_display.display_result(result)
 
     @classmethod
     def make_brief_label(cls, r: SingularResult):
@@ -212,17 +386,18 @@ class ProcedureDetailDisplay(_QContainer):
 class ProcedureTableModel(QAbstractTableModel):
     def __init__(self, results_list: List[ProcedureResult]):
         super().__init__()
-        self._data = results_list  # Getting refernce to main item
+        self.results_list = results_list  # Setting reference to main results list
 
     def data(self, index, role):
         if role == Qt.DisplayRole:
+            result = self.results_list[index.row()]
             if index.column() == 0:
-                return self._data[index.row()].name
+                return result.name
             if index.column() == 1:
-                valid = self._data[index.row()].is_valid
+                valid = result.is_valid
                 return "Good" if valid else "Failed"
             if index.column() == 2:
-                return timestampg(self._data[index.row()].end_time)
+                return timestampg(result.end_time)
             else:
                 return ""
         if role == Qt.TextAlignmentRole:
@@ -244,10 +419,10 @@ class ProcedureTableModel(QAbstractTableModel):
                 return ""
 
             if orientation == Qt.Vertical:
-                return ""
+                return section
 
     def rowCount(self, index):
-        return len(self._data)
+        return len(self.results_list)
 
     def columnCount(self, index):
         return 3
@@ -256,28 +431,37 @@ class ProcedureTableModel(QAbstractTableModel):
 class ProcudureSummaryList(_QContainer):
     def __init__(self, session: GUISession, detail_view: ProcedureDetailDisplay):
         super().__init__(session)
-        self._detail_view = detail_view
+        self.table_view = QTableView()
+        self.table_model = None  # Updated later
+        # Reverence to detailed view container to update information
+        self.detail_view = detail_view
 
-        self._outer = QVBoxLayout()
-        self._box = QGroupBox("Overview")
-        self._inner = QVBoxLayout()
-        self.setLayout(self._outer)
-        self._outer.addWidget(self._box)
-        self._box.setLayout(self._inner)
-
-        self._table_view = QTableView()
-        self._inner.addWidget(self._table_view)
+        self.__init_layout__()
         self._display_update()
 
-        # Setting up the logical behavior
-        self._table_view.clicked.connect(self.display_detail)
-
-    def _display_update(self):
-        self._table_model = ProcedureTableModel(self.session.results)
-        self._table_view.setModel(self._table_model)
-        self._table_view.horizontalHeader().setSectionResizeMode(
+    def __init_layout__(self):
+        self._layout = QVBoxLayout()
+        self.setLayout(self._layout)
+        self.table_view.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeToContents
         )
 
+    def _display_update(self):
+        clear_layout(self._layout)
+        if self.session.board_id == "":
+            self._layout.addWidget(QLabel("No session loaded"))
+        elif len(self.session.results) == 0:
+            self._layout.addWidget(QLabel("No results for session"))
+            self.setLayout(self._layout)
+        else:
+            self.table_model = ProcedureTableModel(self.session.results)
+            self.table_view = QTableView()
+            self.table_view.setModel(self.table_model)
+            self._layout.addWidget(self.table_view)
+            self.table_view.horizontalHeader().setSectionResizeMode(
+                QHeaderView.ResizeToContents
+            )
+            self.table_view.clicked.connect(self.display_detail)
+
     def display_detail(self, item):
-        self._detail_view.display_result(item.row())
+        self.detail_view.display_result(item.row())

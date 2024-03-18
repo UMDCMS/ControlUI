@@ -18,13 +18,8 @@ from ... import procedures
 from ...procedures import _parsing as proc_parsing
 from ...procedures._procedure_base import ProcedureBase
 from ...utils import _str_
-from ..gui_session import (
-    GUISession,
-    _QContainer,
-    _QLineEditDefault,
-    _QRunButton,
-    _QSpinBoxDefault,
-)
+from ..gui_session import GUISession
+from ..qt_helper import _QContainer, _QLineEditDefault, _QRunButton, _QSpinBoxDefault
 
 
 class Worker(QObject):
@@ -83,7 +78,7 @@ class SingleProcedureTab(_QContainer):
         self.clear_button = QPushButton("Clear")
         self.clear_button.clicked.connect(self.revert_default)
 
-        self.__init_style__()
+        self.__init_layout__()
         self._display_update()
 
     def _display_update(self):
@@ -91,7 +86,7 @@ class SingleProcedureTab(_QContainer):
             self.session.board_id != "" or self.session.board_type != ""
         )
 
-    def __init_style__(self):
+    def __init_layout__(self):
         self._outer_layout = QHBoxLayout()
         self.setLayout(self._outer_layout)
         self._doc_label = QLabel(_str_(self.procedure_class.__doc__))
@@ -142,7 +137,7 @@ class SingleProcedureTab(_QContainer):
 
         # Additional tiems to run after thread has completed
         self._thread.finished.connect(lambda: self.loginfo("Completed running!!"))
-        self._thread.finished.connect(lambda: self.session.recursive_set_lock(False))
+        self._thread.finished.connect(lambda: self.run_button.recursive_set_lock(False))
         self._thread.finished.connect(lambda: self.session.refresh())
         self._thread.finished.connect(self._thread.deleteLater)
         # Starting the main thread

@@ -24,9 +24,7 @@ class dummy_procedure(ProcedureBase):
     pause: Annotated[float, "Time between data collection (seconds)"] = 0.5
 
     def run(
-        self,
-        iterate: HWIterable,
-        session_log: List[ProcedureResult],
+        self, iterate: HWIterable, session_log: List[ProcedureResult]
     ) -> ProcedureResult:
         """
         Example procedure mimicing a pedestal normalization routine with dummy
