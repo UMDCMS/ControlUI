@@ -132,10 +132,10 @@ class ProcedureTextDisplay(_QContainer):
             "Status",
             self.status_summary_label(self.result.board_summary),
         )
-        for k, v in self.result.board_summary.__dict__.items():
-            if k == "status" or k == "desc" or k == "channel":
-                continue
-            self.board_summary_layout.addRow(k, QLabel(str(v)))
+        if self.result.board_summary is not None:
+            self.add_singleresult_items(
+                self.board_summary_layout, self.result.board_summary
+            )
 
     def _display_update_channel(self):
         clear_layout(self.channel_overview)
@@ -147,10 +147,7 @@ class ProcedureTextDisplay(_QContainer):
             layout = QFormLayout()
             layout.addRow("Channel", QLabel(str(res.channel)))
             layout.addRow("Status", self.status_summary_label(res))
-            for k, v in r.__dict__.items():
-                if k == "status" or k == "desc" or k == "channel":
-                    continue
-                layout.addRow(k, QLabel(str(v)))
+            self.add_singleresult_items(layout, r)
             container.setLayout(layout)
             container.hide()
             return container
@@ -175,12 +172,29 @@ class ProcedureTextDisplay(_QContainer):
             summary.mousePressEvent = show_index(res.channel)
 
     @classmethod
-    def error_styling(self, r: SingularResult):
-        return "background-color: green" if r.status == 0 else "background-color: red"
+    def add_singleresult_items(cls, layout: QFormLayout, r: SingularResult):
+        for k, v in r.__dict__.items():
+            if k == "status" or k == "desc" or k == "channel":
+                continue
+            label = QLabel(str(v))
+            label.setWordWrap(True)
+            layout.addRow(k, label)
 
     @classmethod
-    def status_summary_label(cls, r: SingularResult):
-        label = QLabel("Good" if r.status == 0 else f"[{r.status}] {r.desc}")
+    def error_styling(self, r: Optional[SingularResult] = None):
+        if r is None:
+            return "background-color: orange"
+        else:
+            return (
+                "background-color: green" if r.status == 0 else "background-color: red"
+            )
+
+    @classmethod
+    def status_summary_label(cls, r: Optional[SingularResult] = None):
+        if r is None:
+            label = QLabel("Not reached!")
+        else:
+            label = QLabel("Good" if r.status == 0 else f"[{r.status}] {r.desc}")
         label.setStyleSheet(cls.error_styling(r))
         return label
 
