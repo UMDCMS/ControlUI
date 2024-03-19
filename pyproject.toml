@@ -9,6 +9,7 @@ dependencies = [
   # For GUI
   "matplotlib",
   "PyQt5",
+  "pyqtgraph"
 ]
 dynamic = ["version"]
 

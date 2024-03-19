@@ -1,11 +1,18 @@
+import collections
+
+import numpy
+import pyqtgraph
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import (
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
     QPushButton,
     QVBoxLayout,
+    QWidget,
 )
 
+from ...utils import get_datetime
 from ..gui_session import GUISession
 from ..qt_helper import _QContainer, _QLineEditDefault, _QRunButton, _QSpinBoxDefault
 
@@ -21,6 +28,7 @@ class TBConnectionPanel(_QContainer):
         # Defining the basic layout
         self.box = QGroupBox("TBT connection", self)
 
+        # Defining the inputs
         self.puller_ip_input = _QLineEditDefault("localhost", self)
         self.puller_port_input = _PortSpinBox(5555, self)
         self.control_ip_input = _QLineEditDefault("10.42.0.1", self)
@@ -29,9 +37,14 @@ class TBConnectionPanel(_QContainer):
 
         self.connect_button = _QRunButton(self.session, "Connect")
         self.disconnect_button = _QRunButton(self.session, "Disconnect")
-        self.discard_button = QPushButton(
-            "Clear", self
-        )  # Clearing setting should not be a "run button?"
+        # Clearing setting should not be a "run button?"
+        self.discard_button = QPushButton("Clear")
+
+        # Telemetry plotting data
+        self.update_timer = QTimer()
+        self.time = collections.deque(maxlen=1024)
+        self.tb_volt = collections.deque(maxlen=1024)
+        self.canvas = pyqtgraph.PlotWidget()
 
         # Augmenting display based on current sessions status
         self.__init_layout__()
@@ -39,6 +52,8 @@ class TBConnectionPanel(_QContainer):
         self.connect_button.set_run(self.tb_connect)
         self.discard_button.clicked.connect(self.tb_clear)
         self.disconnect_button.set_run(self.tb_disconnect)
+        self.update_timer.timeout.connect(self.update_plot_data)
+        self.update_timer.start()
 
     def __init_layout__(self):
         self._box_outer = QVBoxLayout(self)
@@ -61,12 +76,31 @@ class TBConnectionPanel(_QContainer):
         self._button_layout.addWidget(self.disconnect_button)
         self._box_inner.addLayout(self._button_layout)
 
+        # Additional container to limit the dimensions of the plot
+        self._canvas_container = QWidget()
+        self._canvas_container_layout = QVBoxLayout()
+        self._canvas_container_layout.addWidget(self.canvas)
+        self._canvas_container.setLayout(self._canvas_container_layout)
+        self._canvas_container.setMaximumWidth(300)
+        self._canvas_container.setMaximumHeight(300)
+        self._box_inner.addWidget(self._canvas_container)
+        # Additional setup For styling
+        # self.canvas.setAxisItems({"bottom": pyqtgraph.DateAxisItem()})
+        self._tb_volt_line = pyqtgraph.PlotDataItem(
+            self.time, self.tb_volt, connect="finite"
+        )
+        self.canvas.addItem(self._tb_volt_line)
+        self.canvas.setLabel("bottom", "Time ago [seconds]")
+        self.canvas.setLabel("left", "Tileboard voltage")
+        # Setting up the plot objects
+        self.update_timer.setInterval(1000)
+
         self.box.setLayout(self._box_inner)
         self._box_outer.addWidget(self.box)
         self.setLayout(self._box_outer)
 
     @_QContainer.gui_action
-    def tb_connect(self):
+    def tb_connect(self, event=None):
         # printing the form information
         print(
             "Puller@{0}:{1}".format(
@@ -84,7 +118,7 @@ class TBConnectionPanel(_QContainer):
         self._display_update()
 
     @_QContainer.gui_action
-    def tb_clear(self):
+    def tb_clear(self, event=None):
         if self.session.tb_controller is None:
             pass
         else:
@@ -92,11 +126,11 @@ class TBConnectionPanel(_QContainer):
         self._display_update()
 
     @_QContainer.gui_action
-    def tb_disconnect(self):
+    def tb_disconnect(self, event=None):
         self.session.tb_controller = None
         self._display_update()
 
-    def _display_update(self):
+    def _display_update(self, event=None):
         if self.session.tb_controller is None:
             self.box.setTitle("TBT connection (disconnected)")
             self.connect_button.session_config_valid = True
@@ -105,3 +139,19 @@ class TBConnectionPanel(_QContainer):
             self.box.setTitle("TBT connection (connected!)")
             self.connect_button.session_config_valid = False
             self.disconnect_button.session_config_valid = True
+
+    def update_plot_data(self):
+        now = get_datetime()
+        self.time.append(now)
+        self.tb_volt.append(
+            numpy.random.normal(loc=10, scale=2)
+            if self.session.tb_controller is not None
+            else numpy.nan
+        )
+
+        self._tb_volt_line.setData(
+            numpy.array([(now - x).total_seconds() for x in self.time]),
+            numpy.array(self.tb_volt),
+        )
+        # print(self._canvas_item.xData)
+        # print(self._canvas_item.yData)

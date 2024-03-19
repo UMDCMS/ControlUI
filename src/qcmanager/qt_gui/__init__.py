@@ -21,6 +21,7 @@ def create_default_window() -> Tuple[QMainWindow, gui_session.GUISession]:
     session._hw_layout = QVBoxLayout()
     session._hw_layout.addWidget(session.tb_panel)
     session._hw_layout.addWidget(session.temp_panel)
+    session._hw_layout.addStretch()
 
     session._ses_layout = QVBoxLayout()
     session._ses_layout.addWidget(session.loader)
