@@ -177,15 +177,7 @@ class SessionRunSingleProcedure(_QContainer):
 
         self._tabs = QTabWidget()
 
-        for method_class in procedures.__dir__():
-            if method_class.startswith("_"):
-                continue
-            if method_class == "procedure_base":
-                continue
-            method_class = getattr(procedures, method_class)
-            if not isinstance(method_class, type):
-                continue
-            print(type(method_class), method_class)
+        for method_class in procedures.__all_procedures__:
             self._tabs.addTab(
                 SingleProcedureTab(self.session, method_class), method_class.__name__
             )

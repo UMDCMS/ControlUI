@@ -1,6 +1,6 @@
 import inspect
 import warnings
-from typing import Any, Callable, Dict, Iterable, List, Type, _AnnotatedAlias
+from typing import Callable, Dict, Iterable, List, Type, _AnnotatedAlias
 
 from ..hw import TBController
 from ..utils import _str_
@@ -72,8 +72,9 @@ def __check_valid_interface__(method_class: Type) -> bool:
         raise TypeError(
             _str_(
                 f"""
-                Procedure [{name}] defined interfaces ({args}) without type
-                specification. Check file [{inspect.getfile(method_class)}]
+                Procedure [{name}.run] contains interfaces ({args}) without
+                type specification. Check file
+                [{inspect.getfile(method_class)}]
                 """
             )
         )

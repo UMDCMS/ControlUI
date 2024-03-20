@@ -15,11 +15,11 @@ class dummy_procedure(PlottingBase):
         ax.set_ylabel("Mean value [ADC]")
         plot_entry_list = []
 
+        # Initial readout results
         initial_file = self.get_data_path(
             next(x for x in result.data_files if x.desc == "Initial readout"),
         )
         initial_arr = numpy.load(initial_file)
-
         plot_entry_list.append(
             ax.errorbar(
                 x=numpy.arange(initial_arr.shape[0]),
@@ -32,6 +32,7 @@ class dummy_procedure(PlottingBase):
             )
         )
 
+        # Final readout target
         final_file = self.get_data_path(
             next(x for x in result.data_files if x.desc == "Final_readout"),
         )
@@ -47,6 +48,8 @@ class dummy_procedure(PlottingBase):
                 label="Final",
             )
         )
+
+        # Creating the interactive legend item
         self.create_interactive_legend(fig, ax, plot_entry_list, loc="upper right")
 
         return fig

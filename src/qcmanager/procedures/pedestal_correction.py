@@ -18,8 +18,8 @@ class pedestal_correction(ProcedureBase):
     generate helper documentation!
     """
 
-    target_pedestal: Annotated[int, "Target pedestal after normalization"]
     base_config_file: Annotated[str, "Base configuration file"]
+    target_pedestal: Annotated[int, "Target pedestal after normalization"]
     n_events: Annotated[int, "Number of events to collect"] = 5000
     lower_range: Annotated[int, "Lower shift range"] = -5
     upper_range: Annotated[int, "Upper shift range"] = 5
