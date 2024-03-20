@@ -85,7 +85,7 @@ class ProcedureBase(object):
     def name(self):
         return self.procedure_name
 
-    def make_store_path(self, path):
+    def make_store_path(self, path: str) -> str:
         return os.path.join(self.store_base, path)
 
     def full_path(self, data: DataEntry):
@@ -151,5 +151,5 @@ class ProcedureBase(object):
         return self.result.last_data
 
 
-# Helper method to shorten the
+# Helper method to shorten method names
 HWIterable = Callable[[Iterable], Iterable]

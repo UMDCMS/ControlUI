@@ -1,7 +1,4 @@
-import os
-
 import matplotlib
-import numpy
 
 from ..yaml_format import ProcedureResult
 from .common import PlottingBase

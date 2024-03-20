@@ -1,7 +1,3 @@
-"""
-@file TBController.py
-"""
-
 import copy
 import time
 from typing import Any, Dict, Optional
@@ -15,11 +11,11 @@ from ..utils import merge_nested
 class TBController(object):
     def __init__(
         self,
-        ip,
-        daq_port,
-        pull_port,
-        i2c_port,
-        config_file,
+        ip: str,
+        daq_port: int,
+        pull_port: int,
+        i2c_port: int,
+        config_file: str,
         pull_ip="localhost",
     ):
         """
@@ -45,23 +41,18 @@ class TBController(object):
 
 class ZMQController:
     """
-    @brief Base class for interacting with tileboard tester hardware via ZMQ
+    Base class for interacting with tileboard tester hardware as a ZMQ client.
+    Here we are assuming that the host socket is already available on the
+    tileboard tester.
     """
 
     def __init__(self, ip: str, port: int, config: Dict[str, Any]):
-        """
-        @brief Setting up the required data member with None and do nothing more
-
-        @details Construction of the connection should not be performed in the
-        `init` method.
-        """
         self._ip = ip
         self._port = port
         self._config = copy.copy(config)
         # Creating the socket
         self.socket = zmq.Context().socket(zmq.REQ)
         self.socket.connect(f"tcp://{self._ip}:{self._port}")
-        # Flushing the current configuration to the port of interest
 
     def socket_send(self, message: str) -> str:
         """
@@ -81,13 +72,13 @@ class ZMQController:
 
     def configure(self, update_config: Optional[Dict[str, Any]] = None) -> str:
         """
-        @brief Sending a yaml config string to socket connection.
+        Sending a yaml config string to socket connection.
 
-        @details The return function will be the results of sending the
-        configuration. If no YAML fragment is specified, then the entire
-        configuration stored in the class instance is sent. If a YAML
-        configuration fragment is specified, then the configuration updated in
-        the main configuration instances as well.
+        The return function will be the results of sending the configuration.
+        If no YAML fragment is specified, then the entire configuration stored
+        in the class instance is sent. If a YAML configuration fragment is
+        specified, then the configuration updated in the main configuration
+        instances as well.
         """
         if not self.socket_check("configure", "ready"):
             raise RuntimeError("Socket is not ready for configuration!")
@@ -101,7 +92,7 @@ class ZMQController:
 
 class I2CController(ZMQController):
     """
-    @brief Specialized ZMQController class for I2C slow controls
+    Specialized ZMQController class for I2C slow controls
     """
 
     def __init__(self, ip: str, port: int, config: Dict[str, Any]):
