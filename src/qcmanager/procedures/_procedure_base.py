@@ -14,10 +14,10 @@ import os
 import shutil
 import time
 from dataclasses import dataclass
-from typing import Callable, Iterable
+from typing import Callable, Iterable, List
 
 from ..hw.tileboard_zmq import TBController
-from ..utils import _str_, timestamps
+from ..utils import _str_, timestamps, to_yaml
 from ..yaml_format import DataEntry, ProcedureResult
 
 
@@ -152,6 +152,24 @@ class ProcedureBase(object):
         time.sleep(0.1)  # Sleep 100ms for output to be complete
         self.result.data_files.append(DataEntry(path=save_path, **kwargs))
         return self.result.last_data
+
+    def save_full_config(self, tbc: TBController, save_path: str, desc="", **kwargs):
+        """
+        Flushing the current configuration to a file
+        """
+        ret = tbc.i2c_socket._config.copy()
+        for key in ret.keys():
+            if key.find("roc_s") == 0:
+                tbc.i2c_socket._config[key] = {"sc": ret[key]}
+        initial_full_config = {}
+        for key, val in tbc.i2c_socket._config.keys():
+            if key.find("roc_s") == 0:
+                initial_full_config[key] = val
+        initial_full_config["daq"] = tbc.daq_socket._config["daq"]
+        initial_full_config["client"] = tbc.pull_socket._config["client"]
+
+        with self.open_text_file(path=save_path, desc=desc, **kwargs) as fout:
+            to_yaml(initial_full_config, fout)
 
 
 # Helper method to shorten method names

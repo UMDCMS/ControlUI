@@ -10,7 +10,6 @@ logging.basicConfig(level=logging.NOTSET)
 # Starting a blank session
 session = qcmanager.session.Session()
 
-
 # Loading the saved session
 if os.path.exists("results/1234.5678"):
     session.load_yaml("results/1234.5678/session.yaml")

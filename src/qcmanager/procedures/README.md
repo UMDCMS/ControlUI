@@ -49,10 +49,29 @@ methods.
 
 ### Annotating the arguments
 
-For automatic methods for generating display elements and scripts to work, it
-is recommended that you annotate both the procedure arguments and the hardware
-interfaces. The main programs should raise an error if you try and include a
-method without including the correct annotations.
+For automatic methods for generating display elements and scripts to work, a
+procedure class must defined with type annotates for both the procedure
+arguments and the hardware interfaces. The main programs should raise an error
+if you try and include a method without including the correct annotations.
+
+For procedure arguments, it is required that you provide the type annotations
+through the python [`typing.Annotated`][typing] method. The first argument
+being the type you wish the argument to be (must be a python primitive type),
+the second argument is the doc string describing what the argument will do, the
+third argument will be additional parsing is useful to restraining the GUI
+display elements used to display the arguments. This must be a custom classed
+defined in the `_parsing.py` module file. Currently supported methods include:
+
+- TBD
+
+
+For hardware interfaces in the run function, these should all be simple typing
+annotations. The master session class will automatically detect which hardware
+interface to pass into the run call, which also generates an error for when the
+hardware requirements are not met.
+
+[typing]: https://docs.python.org/3/library/typing.html
+
 
 ### Looping/Iterating
 
@@ -60,7 +79,8 @@ When iterating over tasks, it is best-practice to process loops using a
 "hardware-like" `iterate` interface. This will ensure that the loop progress
 can be monitored by the user. This helps the user understand that something
 might be taking a long time because it is processing over-multiple items, and
-not that something has stalled.
+not that something has stalled. You can declare this looping interface by
+annotated this with the the `_procedure_base.HWIterate` type indicator.
 
 ### Taking data
 

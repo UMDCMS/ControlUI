@@ -2,6 +2,7 @@ import copy
 import time
 from typing import Any, Dict, Optional
 
+import numpy
 import yaml
 import zmq
 
@@ -121,10 +122,10 @@ class I2CController(ZMQController):
     def cont_i2c(self, target, *vals):
         """
         A typical pattern for either getting or setting I2C values is done by
-        sending the a "set/read_<target> <val1> <val2>" request string to the I2C
-        server, where values indicate the target channel/sub-channels or user input
-        values. Here we provide a simple interface to generate the expression of
-        interest.
+        sending the a "set/read_<target> <val1> <val2>" request string to the
+        I2C server, where values indicate the target channel/sub-channels or
+        user input values. Here we provide a simple interface to generate the
+        expression of interest.
         """
         return self.socket_send(" ".join([target, *[str(x) for x in vals]]))
 
@@ -171,6 +172,31 @@ class I2CController(ZMQController):
         # tileboard version TODO: update when TB version 2 or version 3 is received.
         ad_mult = (82.0 / 1.0) / (200.0 / 4.0)
         return float(adc_val) / 4095 * 204000 / 4000 * ad_mult
+
+    def get_sca_temperature(self, channel) -> float:
+        A_T = 3.9083e-3
+        B_T = -5.7750e-7
+        R0 = 1000
+
+        adc = self.read_gbtsca_adc(channel)
+        return round(
+            float(
+                (
+                    -R0 * A_T
+                    + numpy.sqrt(
+                        (R0 * A_T) ** 2
+                        - 4 * R0 * B_T * (R0 - (1800 / ((2.5 * 4095 / float(adc)) - 1)))
+                    )
+                )
+                / (2 * R0 * B_T)
+            ),
+            1,
+        )
+
+    def get_sca_val(self, key, round=None):
+        """
+        Getting GBT_SCA value to the desire round
+        """
 
 
 class DAQController(ZMQController):

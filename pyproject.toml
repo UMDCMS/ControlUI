@@ -6,6 +6,8 @@ dependencies = [
   "pyyaml",
   "tqdm",
   "zmq",
+  "nested_dict",
+  "hist",
   # For GUI
   "matplotlib",
   "PyQt5",

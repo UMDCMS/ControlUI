@@ -35,7 +35,7 @@ class SingularResult:
     string, all other keyword arguments will be used to store the results
     """
 
-    BOARD = -999 # Dummy channel results set for board status 
+    BOARD = -999  # Dummy channel results set for board status
 
     def __init__(self, status: int, desc: str, channel: int, **kwargs):
         self.status: int = status

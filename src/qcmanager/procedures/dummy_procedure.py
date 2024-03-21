@@ -10,6 +10,7 @@ from ..yaml_format import DataEntry, ProcedureResult, SingularResult
 from ._procedure_base import HWIterable, ProcedureBase
 
 
+
 @dataclass(kw_only=True)
 class dummy_procedure(ProcedureBase):
     """
