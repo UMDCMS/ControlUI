@@ -33,6 +33,7 @@ def __check_valid_arg__(method_class: Type) -> bool:
     for arg_name, arg_sig in args_sig.items():
         if not isinstance(arg_sig.annotation, _AnnotatedAlias):
             illegal_args.append(arg_name)
+        # TODO: Check for allowed argument types?
     if len(illegal_args):
         name = method_class.__name__
         args = ", ".join(illegal_args)

@@ -1,6 +1,7 @@
 from pybind11.setup_helpers import Pybind11Extension, build_ext
-from setuptools import Extension, setup
+from setuptools import setup
 
+# Additional C++ binding libraries that you might want to add
 _rocv2 = Pybind11Extension(
     "qcmanager.hw._rocv2", sorted(["src/qcmanager/hw/_rocv2.cc"])
 )

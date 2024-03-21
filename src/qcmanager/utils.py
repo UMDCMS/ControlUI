@@ -1,8 +1,3 @@
-"""
-Collection of small of helper methods for data type casting and string parsing
-"""
-
-
 import collections
 import datetime
 import io

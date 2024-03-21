@@ -69,6 +69,9 @@ class ProcedureBase(object):
     def run_with(self, *args, **kwargs) -> ProcedureResult:
         try:
             self.run(*args, **kwargs)
+        except ValueError as err:
+            self.logerror(str(err))
+            self.result.status_code = (1000, "Missing procudure")
         except Exception as err:
             self.logerror(str(err))
             self.result.status_code = (1111, "Execution error")

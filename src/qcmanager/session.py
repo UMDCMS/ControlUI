@@ -119,7 +119,7 @@ class Session(object):
 
     def handle_procedure(
         self,
-        procedure_class: ProcedureBase,
+        procedure_class: Type,
         procedure_arguments: Dict[str, Any],
     ) -> None:
         """

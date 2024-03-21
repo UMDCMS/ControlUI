@@ -12,6 +12,7 @@ appropriate form factors to allow for simple broad casting.
 import enum
 
 import awkward
+import numpy
 import uproot
 
 from . import _rocv2  # For C++ data deserialization
