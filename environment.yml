@@ -18,3 +18,5 @@ dependencies:
   # qt-wayland line for the instances to complete
   - qt-wayland=5.15.8
   - pyqt=5.15
+  # For simple YAML parsing
+  - go-yq
