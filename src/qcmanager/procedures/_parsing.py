@@ -110,3 +110,27 @@ def get_param_doc(param: inspect.Parameter) -> str:
 def has_default(param: inspect.Parameter) -> bool:
     """Checking if it has default value"""
     return param.default != inspect._empty
+
+
+def has_parser(param: inspect.Parameter) -> bool:
+    return len(param.annotation.__metadata__) > 1
+
+
+def run_argument_parser(
+    param: inspect.Parameter, value, session, exception=False
+) -> bool:
+    if has_parser(param):
+        parser = param.annotation.__metadata__[1]
+        parser.session = session
+        ret = parser._check_valid(value)
+        if not exception:
+            return ret
+        else:
+            if ret:
+                return ret
+            else:
+                raise ValueError(
+                    f"Input value [{value}] failed annotated requirement [{parser}]"
+                )
+    else:
+        return True

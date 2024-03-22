@@ -7,8 +7,8 @@ import scipy
 
 from ..utils import timestamps
 from ..yaml_format import DataEntry, ProcedureResult, SingularResult
+from ._argument_validation import Range
 from ._procedure_base import HWIterable, ProcedureBase
-
 
 
 @dataclass(kw_only=True)
@@ -18,19 +18,24 @@ class dummy_procedure(ProcedureBase):
     generate helper documentation!
     """
 
+    # Procedure (non-interface) arguments. Must declared with the Annotated
+    # type hinting. The first value is the type, and should be a python
+    # primitive type; the second is a string documenting the what the argument
+    # does, and will be used to generate interface elements; the third is
+    # optional which is indications for additional parsing.
     target: Annotated[int, "Target normalization value"]
     n_events: Annotated[int, "Number of events to collect"] = 200
-    lower_range: Annotated[int, "Lower shift range"] = -5
-    upper_range: Annotated[int, "Upper shift range"] = 5
-    pause: Annotated[float, "Time between data collection (seconds)"] = 0.5
+    lower_range: Annotated[int, "Lower shift range", Range(-10, 0)] = -5
+    upper_range: Annotated[int, "Upper shift range", Range(0, 10)] = 5
+    pause: Annotated[float, "Time between DAQ calls (seconds)", Range(0.1, 2)] = 0.5
 
+    # The main method that should be over-written by for each procedure of
+    # interest. Here you should define the various hardware interfaces that you
+    # use, the simple type annotation would be used to hint to the main session
+    # manager which object to pass to the run call.
     def run(
         self, iterate: HWIterable, session_log: List[ProcedureResult]
     ) -> ProcedureResult:
-        """
-        Example procedure mimicing a pedestal normalization routine with dummy
-        inputs.
-        """
         # Getting the concrete arguments types
         gen_type: int = len(session_log) % 3
 
@@ -150,22 +155,3 @@ class dummy_procedure(ProcedureBase):
                 1, "HAS FAILED", channel=SingularResult.BOARD, fail_idx=none_zero
             )
         return SingularResult(0, "SUCCESS", channel=SingularResult.BOARD)
-
-
-if __name__ == "__main__":
-    import argparse
-
-    import tqdm
-
-    parser = argparse.ArgumentParser(__file__, "Arguments for dummy procedure")
-    parser.add_argument(
-        "--lower_range", type=int, default=-5, help="Help lower range plot"
-    )
-    parser.add_argument(
-        "--upper_range", type=int, default=10, help="Help lower range plot"
-    )
-    parser.add_argument("--target", type=int, default=100, help="Help lower range plot")
-    parser.add_argument("--pause", type=float, default=2, help="Time to pause")
-    args = parser.parse_args()
-    procedure = dummy_procedure(**args.__dict__)
-    procedure.run_with(tqdm.tqdm, [])

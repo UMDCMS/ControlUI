@@ -14,7 +14,7 @@ def main(*args):
     parser = create_argparser()
     args = parser.parse_args(args)
     session, run_procedure = initialize_required_interfaces(args)
-    run_args = extract_run_args(run_procedure, args)
+    run_args = extract_run_args(run_procedure, args, session)
     session.handle_procedure(run_procedure, procedure_arguments=run_args)
 
 
@@ -77,7 +77,7 @@ def create_procedure_subparser(
         argument_settings["type"] = hint.__origin__
         argument_settings["help"] = procedures._parsing.get_param_doc(param)
         # Adding default arugment
-        if param.default == inspect._empty:
+        if not procedures._parsing.has_default(param):
             argument_settings["required"] = True
         else:
             argument_settings["default"] = param.default
@@ -96,7 +96,7 @@ def initialize_required_interfaces(
     session = Session()
     session_file = f"results/{args.board_type}.{args.board_id}/session.yaml"
     if os.path.exists(os.path.dirname(session_file)):
-        session.load_yaml("results/1234.5678/session.yaml")
+        session.load_yaml(session_file)
     else:
         session.from_blank("1234", "5678")
 
@@ -116,11 +116,21 @@ def initialize_required_interfaces(
     return session, method_class
 
 
-def extract_run_args(run_procedure: Type, args: argparse.Namespace) -> Dict[str, Any]:
+def extract_run_args(
+    run_procedure: Type, args: argparse.Namespace, session: Session
+) -> Dict[str, Any]:
+    for name, param in get_procedure_args(run_procedure).items():
+        procedures._parsing.run_argument_parser(
+            param, getattr(args, name), session, exception=True
+        )
     return {
         name: getattr(args, name) for name in get_procedure_args(run_procedure).keys()
     }
 
 
 if __name__ == "__main__":
+    import logging
+
+    logging.root.setLevel(logging.NOTSET)
+    logging.basicConfig(level=logging.NOTSET)
     main(*sys.argv[1:])
