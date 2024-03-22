@@ -137,17 +137,27 @@ class Session(object):
         procedure_instance = procedure_class(
             **procedure_arguments, store_base=store_base
         )
-        # Appending immediately so that the log will be kept
         self.results.append(procedure_instance.result)
-        result = procedure_instance.run_with(
-            *self.detect_procedure_interface(procedure_class)
-        )
-        # For all the the results. The file path should be reset to be relative
-        # to the session.yaml file
-        for f in result.data_files:
-            f.path = os.path.relpath(f.path, os.path.dirname(self.log_file))
-
-        self.save_session()
+        # Running additional parsing before processing
+        try:
+            for name, param in get_procedure_args(procedure_class).items():
+                run_argument_parser(
+                    param,
+                    getattr(procedure_instance, name),
+                    session=self,
+                    exception=True,
+                )
+            result = procedure_instance.run_with(
+                *self.detect_procedure_interface(procedure_class)
+            )
+            # For all the the results. The file path should be reset to be relative
+            # to the session.yaml file
+            for f in result.data_files:
+                f.path = os.path.relpath(f.path, os.path.dirname(self.log_file))
+        except Exception as err:
+            self.result.status_code = (1, str(err))
+        finally:
+            self.save_session()
 
     def iterate(self, x: Iterable, *args, **kwargs):
         # Method to keep track of long loops. Will be over written in the GUI

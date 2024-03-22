@@ -33,13 +33,15 @@ else:
 #        n_events=2000,
 #    ),
 # )
-session.handle_procedure(
+qcmanager.run_single_procedure(
+    session,
     qcmanager.procedures.dummy_procedure,
     procedure_arguments=dict(target=70, pause=0.2),
 )
-session.handle_procedure(
+qcmanager.run_single_procedure(
+    session,
     qcmanager.procedures.dummy_process2,
-    procedure_arguments=dict(pause=0.1),
+    procedure_arguments=dict(pause=0.1, comp_file="mytest.txt"),
 )
 
 # Saving the session
