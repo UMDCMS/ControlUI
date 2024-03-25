@@ -125,7 +125,7 @@ class led_scan_testbeam(ProcedureBase):
 
         return self.result
 
-    def _make_i2c_configuration(self, tbc: TBController, trim_value: int, phase: int):
+    def make_i2c_configuration(self, tbc: TBController, trim_value: int, phase: int):
         # Aliases for underlying inject configurations
         _GAIN = self.inject_config["gain"]
         _CHANNELS = self.inject_config["injectedChannels"]
@@ -136,7 +136,6 @@ class led_scan_testbeam(ProcedureBase):
                 continue
             config[key]["sc"]["ReferenceVoltage"]["all"]["IntCtest"] = 0
             config[key]["sc"]["ReferenceVoltage"]["all"]["Calib"] = 0
-            # "1": inject to preamp input, "0": inject to conveyor input
             config[key]["sc"]["ReferenceVoltage"]["all"]["choice_cinj"] = 1
             config[key]["sc"]["ReferenceVoltage"]["all"]["cmd_120p"] = 0
             # ================================test21072023
