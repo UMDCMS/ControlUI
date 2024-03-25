@@ -35,6 +35,8 @@ class TBConnectionPanel(_QContainer):
         self.i2c_port_input = _PortSpinBox(6000, self)
         self.daq_port_input = _PortSpinBox(5000, self)
 
+        # Connecting and disconnecting should be a "run button", as we should
+        # not disconnect the tileboard when the something is running
         self.connect_button = _QRunButton(self.session, "Connect")
         self.disconnect_button = _QRunButton(self.session, "Disconnect")
         # Clearing setting should not be a "run button?"
@@ -140,6 +142,7 @@ class TBConnectionPanel(_QContainer):
             self.connect_button.session_config_valid = False
             self.disconnect_button.session_config_valid = True
 
+    @_QContainer.gui_action
     def update_plot_data(self):
         now = get_datetime()
         self.time.append(now)
@@ -153,5 +156,3 @@ class TBConnectionPanel(_QContainer):
             numpy.array([(now - x).total_seconds() for x in self.time]),
             numpy.array(self.tb_volt),
         )
-        # print(self._canvas_item.xData)
-        # print(self._canvas_item.yData)
