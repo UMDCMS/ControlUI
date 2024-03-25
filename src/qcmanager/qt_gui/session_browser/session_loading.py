@@ -3,15 +3,7 @@ import os
 
 import yaml
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
-    QFormLayout,
-    QGroupBox,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QPushButton,
-    QVBoxLayout,
-)
+from PyQt5.QtWidgets import QGroupBox, QHBoxLayout, QLabel, QLineEdit, QVBoxLayout
 
 from ...utils import _str_
 from ..gui_session import GUISession
@@ -115,6 +107,7 @@ class SessionLoader(_QContainer):
     def _update_summary(self, event=None):
         """Show basic information of currect session"""
         if self.session.board_id == "" or self.session.board_type == "":
+            """Early return if no board is loaded"""
             self.box.setTitle("Session (none loaded)")
             self.boardtype_label.setText("")
             self.boardid_label.setText("")
@@ -124,22 +117,25 @@ class SessionLoader(_QContainer):
         self.box.setTitle(
             f"Session (loaded {self.session.board_type}@{self.session.board_id})"
         )
-        self.boardtype_label.setText("<b>Board type: </b>" + self.session.board_type)
-        self.boardid_label.setText("<b>Board ID: </b>" + self.session.board_id)
-        # Procedure update
+        self.boardtype_label.setText(f"<b>Board type: </b>{self.session.board_type}")
+        self.boardid_label.setText(f"<b>Board ID: </b>{self.session.board_id}")
+        # Procedure-related summary strings
         total_run = len(self.session.results)
         success_run = len([x for x in self.session.results if x.is_valid])
         self.log_summary_label.setText(
             "<b>Procedure(s)</b> (Tot/S/F): "
             + f"{total_run}/{success_run}/{total_run-success_run}"
         )
-        # Last entry update
-        time_str = (
-            "N/A"
-            if len(self.session.results) == 0
-            else self.session.results[-1].end_time.strftime("%Y-%b-%d (%a), %I:%M%p")
+        self.update_label.setText(
+            "<b>Last update:</b>"
+            + (
+                "N/A"
+                if len(self.session.results) == 0
+                else self.session.results[-1].end_time.strftime(
+                    "%Y-%b-%d (%a), %I:%M%p"
+                )
+            )
         )
-        self.update_label.setText("<b>Last update:</b>" + time_str)
 
     @_QContainer.gui_action
     def _update_templates(self, event=None):
@@ -149,7 +145,7 @@ class SessionLoader(_QContainer):
             layout_list = sorted(yaml.safe_load(f))
         for f in layout_list:
             self.load_new_type_input.addItem(f)
-        self.load_new_button.setDisabled(True)  # Disable by default
+        self.load_new_button.session_config_valid = False
 
     @_QContainer.gui_action
     def _update_existing(self, event=None):
@@ -158,7 +154,7 @@ class SessionLoader(_QContainer):
         template_files = sorted([os.path.basename(x) for x in template_files])
         for f in template_files:
             self.load_existing_input.addItem(f)
-        self.load_existing_button.setDisabled(True)  # Disable by default
+        self.load_existing_button.session_config_valid = True
 
     @_QContainer.gui_action
     def check_new_inputs(self, event=None):
