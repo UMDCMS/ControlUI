@@ -26,6 +26,14 @@ FigureCanvas = matplotlib.backends.backend_qt5agg.FigureCanvasQTAgg
 NavigationToolbar = matplotlib.backends.backend_qt5agg.NavigationToolbar2QT
 
 
+class _QWrapLabel(QLabel):
+    """Helper label to ensure that word wrapping is enabled by default"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setWordWrap(True)
+
+
 class MplCanvasWidget(QWidget):
     def __init__(self, figure):
         super().__init__()
@@ -65,10 +73,10 @@ class ProcedureTextDisplay(_QContainer):
         self.result = None
 
         # For overall results
-        self.name_label = QLabel("")
-        self.start_label = QLabel("")
-        self.end_label = QLabel("")
-        self.logical_label = QLabel("")
+        self.name_label = _QWrapLabel("")
+        self.start_label = _QWrapLabel("")
+        self.end_label = _QWrapLabel("")
+        self.logical_label = _QWrapLabel("")
         self.procedure_args_layout = QFormLayout()
         self.board_summary_layout = QFormLayout()
 
