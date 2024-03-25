@@ -3,6 +3,8 @@ from typing import Any, Dict, Type
 
 from . import plotting, procedures, session, utils, yaml_format
 
+__version__ = "0.0.3"
+
 
 def run_single_procedure(
     session: session.Session,
@@ -45,6 +47,3 @@ def run_single_procedure(
         session.results[-1].status_code = (1, str(err))
     finally:
         session.save_session()
-
-
-__version__ = "0.0.3"
