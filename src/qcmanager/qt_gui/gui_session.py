@@ -1,30 +1,16 @@
-"""
-The contents is exclusively create to add additional interface wrappers that
-would be suitable for the GUI. The main layout of the GUI elements will be
-handled in create_default_session method define in the __init__.py file
-"""
+from typing import Iterable
 
-import functools
-import logging
-import time
-from typing import Callable, Iterable, List, Optional
-
-from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtWidgets import QWidget
 
 # Loading in the main session object for handling the various instances
 from ..session import Session
-from ..utils import _str_
-
-"""
-
-Helper classes for nicer interface to create GUI elements
-
-"""
 
 
 class GUISession(Session, QWidget):
-    # Main window that is also the session instance
+    """
+    Main window widget that doubles as the main session instance
+    """
+
     def __init__(self):
         Session.__init__(self)
         QWidget.__init__(self)
@@ -54,7 +40,8 @@ class GUISession(Session, QWidget):
     def iterate(self, x: Iterable, *args, **kwargs):
         """
         The progress bar containers cannot be initialized here due to import
-        restrictions. The main constructer must make sure that a new session
+        restrictions. The main constructer must make sure that the correct
+        handler for the message container is passed to the object
         """
         assert self.message_container is not None, "Message container not initialized"
         return self.message_container.iterate(x, *args, **kwargs)

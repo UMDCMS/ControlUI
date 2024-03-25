@@ -3,7 +3,6 @@ from typing import Tuple
 from PyQt5.QtWidgets import QHBoxLayout, QMainWindow, QVBoxLayout
 
 from . import gui_session, hwpanels, session_browser
-from .qt_helper import _QContainer
 
 
 def create_default_window() -> Tuple[QMainWindow, gui_session.GUISession]:
