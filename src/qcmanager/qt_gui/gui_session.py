@@ -2,7 +2,6 @@ from typing import Iterable, Optional
 
 from PyQt5.QtWidgets import QWidget
 
-# Loading in the main session object for handling the various instances
 from ..session import Session
 
 

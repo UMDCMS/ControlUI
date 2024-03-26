@@ -225,8 +225,6 @@ class SingleProcedureTab(_QContainer):
         if isinstance(parser, arg_validation.StringListChecker):
             widget = _QComboPlaceholder("--choose valid string--")
             parser.session = self.session
-            print(parser)
-            print(parser._full_list)
 
             for item in parser._full_list:
                 widget.addItem(item)
@@ -271,5 +269,3 @@ class SessionRunSingleProcedure(_QContainer):
     def send_interupt(self):
         """Interupt the current running process"""
         self.session.interupt_flag = True
-        print("Sending interupt")
-        pass

@@ -59,7 +59,6 @@ class SessionMessageDisplay(_QContainer):
         def _get_first_unused():
             for index, p in enumerate(self.progress_bars):
                 if not p.in_use:
-                    print(index)
                     return p
 
         p_item = _get_first_unused()
