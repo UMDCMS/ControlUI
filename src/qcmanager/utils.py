@@ -121,7 +121,9 @@ def merge_nested(dest, update, path=None):
             else:
                 # Otherwise there is a structure mismatch
                 raise ValueError(
-                    "Mismatch structure at %s".format(".".join(path + [str(key)]))
+                    "Mismatch structure at {node}".format(
+                        node=".".join(path + [str(key)])
+                    )
                 )
         else:
             dest[key] = update[key]

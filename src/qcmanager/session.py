@@ -1,13 +1,13 @@
 import inspect
 import os
-from typing import Any, Dict, Iterable, List, Optional, Type
+from typing import Any, Iterable, List, Optional, Type
 
 import tqdm
 import yaml
 
 from .hw import TBController
 from .procedures._procedure_base import HWIterable, ProcedureBase
-from .utils import _str_, timestampf, to_yaml
+from .utils import _str_, to_yaml
 from .yaml_format import ProcedureResult
 
 

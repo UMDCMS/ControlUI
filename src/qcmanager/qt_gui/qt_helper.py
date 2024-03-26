@@ -1,11 +1,10 @@
 import functools
 import logging
-import time
 import traceback
 from typing import Callable, Iterable, List
 
 import tqdm
-from PyQt5.QtCore import QObject, Qt, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtWidgets import (
     QComboBox,
     QDialog,

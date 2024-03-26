@@ -14,7 +14,7 @@ import os
 import shutil
 import time
 from dataclasses import dataclass
-from typing import Callable, Iterable, List
+from typing import Callable, Iterable
 
 from ..hw.tileboard_zmq import TBController
 from ..utils import _str_, timestamps, to_yaml

@@ -1,5 +1,4 @@
 import inspect
-import time
 from typing import Any, Dict, Type
 
 from PyQt5.QtCore import QObject, Qt, QThread, pyqtSignal

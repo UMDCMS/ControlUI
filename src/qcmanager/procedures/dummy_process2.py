@@ -1,12 +1,10 @@
 import time
 from dataclasses import dataclass
-from typing import Annotated, Callable, List, Tuple
+from typing import Annotated, List
 
 import numpy
-import scipy
 
-from ..utils import timestamps
-from ..yaml_format import DataEntry, ProcedureResult, SingularResult
+from ..yaml_format import ProcedureResult, SingularResult
 from ._argument_validation import ProcedureDataFiles, Range
 from ._procedure_base import HWIterable, ProcedureBase
 

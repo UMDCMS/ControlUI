@@ -1,7 +1,7 @@
 import logging
 from typing import Iterable
 
-from PyQt5.QtWidgets import QGridLayout, QGroupBox, QHBoxLayout, QLabel, QVBoxLayout
+from PyQt5.QtWidgets import QGridLayout, QGroupBox, QLabel
 
 from ..gui_session import GUISession
 from ..qt_helper import _QContainer, _QLabelHandler, _QPBarContainer, _QThreadableTQDM
