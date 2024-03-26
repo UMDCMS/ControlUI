@@ -17,7 +17,7 @@ class SessionMessageDisplay(_QContainer):
         self.program_message = QLabel("")
 
         # Should not need more than 6 progress bars in total???
-        self.progress_bars = [_QPBarContainer("", 0) for _ in range(6)]
+        self.progress_bars = [_QPBarContainer() for _ in range(6)]
 
         self.__init_layout__()
         self.__init_logger__()
@@ -33,12 +33,10 @@ class SessionMessageDisplay(_QContainer):
         for index, p in enumerate(self.progress_bars):
             self._layout.addWidget(p.desc_label, 2 + index, 0)
             self._layout.addWidget(p.pbar_label, 2 + index, 1)
-            self._layout.addWidget(p.frac_label, 2 + index, 2)
             p.clear()
 
         self._layout.setColumnStretch(0, 1)
         self._layout.setColumnStretch(1, 20)
-        self._layout.setColumnStretch(2, 5)
         self.setLayout(self._layout)
 
     def __init_logger__(self):
@@ -62,9 +60,6 @@ class SessionMessageDisplay(_QContainer):
                     return p
 
         p_item = _get_first_unused()
-        p_item.pre_loop(name=kwargs.get("desc", "Progress"), total=len(x))
-        thread_tqdm = _QThreadableTQDM(self.session, x, *args, **kwargs)
-        p_item.moveToThread(thread_tqdm.thread())
-        thread_tqdm.progress.connect(p_item.progress)
-        thread_tqdm.clear.connect(p_item.clear)
-        return thread_tqdm
+        # p_item.moveToThread(thread_tqdm.thread())
+        p_item.prepare(_QThreadableTQDM(self.session, x, *args, **kwargs))
+        return p_item.tqdm_instance

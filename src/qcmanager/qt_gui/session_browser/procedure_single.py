@@ -18,7 +18,6 @@ from PyQt5.QtWidgets import (
 from ... import procedures, run_single_procedure
 from ...procedures import _argument_validation as arg_validation
 from ...procedures import _parsing as proc_parsing
-from ...procedures._procedure_base import ProcedureBase
 from ...utils import _str_
 from ..gui_session import GUISession
 from ..qt_helper import (
@@ -31,10 +30,11 @@ from ..qt_helper import (
 )
 
 
-class Worker(QObject):
+class ProcedureWorker(QObject):
     """
-    Helper object to run processes in the background. Otherwise all GUI
-    elements would be locked is not locked
+    Helper object to run the `run_single_procedure` method in a background
+    thread. Must be used otherwise all GUI elements would be locked and cannot
+    updated until the process has finished.
     """
 
     finished = pyqtSignal()
@@ -42,7 +42,7 @@ class Worker(QObject):
     def __init__(
         self,
         session: GUISession,
-        procedure_class: ProcedureBase,
+        procedure_class: Type,
         procedure_arguments=Dict[str, any],
     ):
         super().__init__()
@@ -51,17 +51,20 @@ class Worker(QObject):
         self.procedure_arguments = procedure_arguments
 
     def run(self):
-        time.sleep(0.1)  # Adding artificial delay
         run_single_procedure(
             self.session,
             self.procedure_class,
             procedure_arguments=self.procedure_arguments,
         )
-        time.sleep(0.1)  # Adding artificial delay
         self.finished.emit()
 
 
 class SingleProcedureTab(_QContainer):
+    """
+    The tab containing the setting up the various input fields to place for
+    runing a singular defined procedure class.
+    """
+
     N_COLUMNS = 3
 
     def __init__(self, session: GUISession, procedure_class: Type):
@@ -84,15 +87,17 @@ class SingleProcedureTab(_QContainer):
         self.clear_button.clicked.connect(self.revert_default)
 
         self.__init_layout__()
-        self.build_input_widget()  # First build my be set after layout has be defined
         self._display_update()
 
     def _display_update(self):
+        # Run button must only be enabled if the session is actually loaded
         self.run_button.session_config_valid = (
             self.session.board_id != "" or self.session.board_type != ""
         )
-        # Rebuild every time the a refresh is requested as the inputs by
-        # contain session-dependent variables
+        # TODO: disable button if hardware requirements are not met?
+
+        # Rebuild every time a refresh is requested as the inputs may contain
+        # session-dependent variables
         self.build_input_widget()
 
     def __init_layout__(self):
@@ -115,7 +120,7 @@ class SingleProcedureTab(_QContainer):
 
     def run_procedure(self):
         """Running the procedure in a separate thread"""
-        self._worker = Worker(
+        self._worker = ProcedureWorker(
             self.session,
             self.procedure_class,
             procedure_arguments={

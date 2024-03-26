@@ -4,6 +4,7 @@ import time
 import traceback
 from typing import Callable, Iterable, List
 
+import tqdm
 from PyQt5.QtCore import QObject, Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QComboBox,
@@ -236,84 +237,87 @@ class _QLabelHandler(logging.Handler):
 
 
 class _QThreadableTQDM(QObject):
+    # A threadable loop object. As we cannot have multiple inheritance with
+    # QObjects, we will create a tqdm object to use as styling of the object.
+    # We will still use the underlying TQDM object to help with styling and
+    # avoiding excessive signal generation
     progress = pyqtSignal(int)
     clear = pyqtSignal()
 
+    class _WrapTQDM(tqdm.tqdm):
+        # Thin wrapper to automatically handle the emit progress signal
+        def __init__(self, obj, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self._parent = obj
+
+        def update(self, n=1):
+            super().update(n)
+            self._parent.progress.emit(self.n)
+
     def __init__(self, session: GUISession, x: Iterable, *args, **kwargs):
         super().__init__()
-        self._iterable = x
+        self.tqdm_bar = _QThreadableTQDM._WrapTQDM(self, x, *args, **kwargs)
+        # Add reference to main session object to capture the various signals
         self.session = session
 
     def __iter__(self):
-        for idx, ret in enumerate(self._iterable):
-            if self.session.interupt_flag:
-                raise InterruptedError("Interupted by user!!")
-            self.progress.emit(idx + 1)
-            yield ret
-        self.clear.emit()
+        # main iteration class that is used to generate the signals. Mimicking
+        # the structure and signal of the tqdm.std.__iter__ method:
+        # See here:
+        # https://github.com/tqdm/tqdm/blob/master/tqdm/std.py#L1160
+        try:
+            for x in self.tqdm_bar:
+                if self.session.interupt_flag:
+                    raise InterruptedError("Interupted by user!!")
+                yield x
+        finally:
+            self.clear.emit()
 
 
 class _QPBarContainer(QWidget):
-    def __init__(self, name: str, total: int):
+    def __init__(self):
         # Graphical update are prone to crashing when considering threading...
         # Hacking together a text-based display for progress instead
         super().__init__()
 
         # Display elements
-        self.desc_label = QLabel(name)
+        self.desc_label = QLabel("")
         self.pbar_label = QLabel("")  # Using text based progress bar??
-        self.frac_label = QLabel("")
-
-        # Used to help with the display
-        self.last_update = time.time()
-        self.start_time = time.time()
-        self.total = total
-        self.in_use = False
-        self._min_interval = 1 / 20.0
-        self.__init_layout__()
+        self.tqdm_instance: _QThreadableTQDM._WrapTQDM = None
 
     def __init_layout__(self):
         # No explicit layout would be added here. As the display elements would
         # most likely set want to be the set by the solution
-        self.desc_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.pbar_label.setStyleSheet("font-family: monospace")
 
-    def pre_loop(self, name: str, total: int):
-        self.total = total
+    def prepare(self, instance: _QThreadableTQDM._WrapTQDM):
+        # Wrapping the instances
         self.in_use = True
-        self.last_update = time.time()
-        self.start_time = time.time()
-        self.desc_label.setText(name)
+        self.tqdm_instance = instance
+
+        # Setting the display elements to be visible
         self.desc_label.show()
         self.pbar_label.show()
-        self.frac_label.show()
+        self.desc_label.setText(self.tqdm_instance.tqdm_bar.desc)
 
+        # Connecting the signals to display element update
+        self.tqdm_instance.progress.connect(self.progress)
+        self.tqdm_instance.clear.connect(self.clear)
+
+    @_QContainer.gui_action
     def progress(self, x):
-        if (time.time() - self.last_update) < self._min_interval and x != 1:
-            return  # Early return if interval is too small
-        current = time.time()
-        # Updating the progress bar
-        complete = int(100 * (x / self.total))
-        remain = 100 - complete
-        self.pbar_label.setText("[" + ("#" * complete) + ("-" * remain) + f"]")
-        diff_time = current - self.start_time
-        per_item = diff_time / x
-        self.frac_label.setText(
-            " ".join(
-                [
-                    f"[{x}/{self.total}]",
-                    f"Total time: {diff_time:.1f}",
-                    (
-                        f"{1/per_item:.2f} it/sec"
-                        if per_item < 0.1
-                        else f"{per_item:.1f} sec/it"
-                    ),
-                ]
-            )
-        )
+        tqdm_bar = self.tqdm_instance.tqdm_bar
+        desc = tqdm_bar.desc
+
+        format_dict = {k: v for k, v in tqdm_bar.format_dict.items()}
+        format_dict["ncols"] = 150  # Length 0 / stat only progress bar
+        pbar_str = tqdm_bar.format_meter(**format_dict)
+        pbar_str = pbar_str[len(desc) + 1 :]
+
+        self.pbar_label.setText(pbar_str)
+        self.pbar_label.setStyleSheet("font-family: monospace")
 
     def clear(self):
         self.in_use = False
         self.desc_label.hide()
         self.pbar_label.hide()
-        self.frac_label.hide()
