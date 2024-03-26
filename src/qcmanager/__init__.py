@@ -1,4 +1,5 @@
 import os
+import traceback
 from typing import Any, Dict, Type
 
 from . import plotting, procedures, session, utils, yaml_format
@@ -45,5 +46,6 @@ def run_single_procedure(
             f.path = os.path.relpath(f.path, os.path.dirname(session.log_file))
     except Exception as err:
         session.results[-1].status_code = (1, str(err))
+        print(traceback.format_exc())
     finally:
         session.save_session()
