@@ -1,8 +1,8 @@
 from typing import Tuple
 
-from PyQt5.QtWidgets import QHBoxLayout, QMainWindow, QVBoxLayout
+from PyQt5.QtWidgets import QHBoxLayout, QMainWindow, QVBoxLayout, QWidget
 
-from . import gui_session, hwpanels, session_browser
+from . import gui_session, hwpanels, qt_helper, session_browser
 
 
 def create_default_window() -> Tuple[QMainWindow, gui_session.GUISession]:

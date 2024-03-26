@@ -19,8 +19,8 @@ class dummy_process2(ProcedureBase):
     """
 
     outer_size: Annotated[int, "Size of outer loop", Range(5, 10)] = 5
-    inner_size: Annotated[int, "Size of inner loop", Range(5, 10)] = 10
-    pause: Annotated[float, "Time between loops", Range(0.01, 1)] = 0.01
+    inner_size: Annotated[int, "Size of inner loop", Range(5, 100)] = 10
+    pause: Annotated[float, "Time between loops", Range(0.1, 10)] = 0.1
     comp_file: Annotated[
         str,
         "File to pull contents from",
