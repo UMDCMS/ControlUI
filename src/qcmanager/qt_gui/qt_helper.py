@@ -1,7 +1,8 @@
 import functools
 import logging
 import time
-from typing import Callable, Iterable, List, Optional
+import traceback
+from typing import Callable, Iterable, List
 
 from PyQt5.QtCore import QObject, Qt, pyqtSignal
 from PyQt5.QtWidgets import (
@@ -20,6 +21,20 @@ from ..utils import _str_
 from .gui_session import GUISession
 
 
+def clear_layout(layout):
+    """
+    Clearing the container contents of a layout. As this operation is
+    potentially expensive, use this method sparingly!
+    """
+    for i in reversed(range(layout.count())):
+        item = layout.itemAt(i)
+        if isinstance(item.widget(), QWidget):
+            item.widget().deleteLater()
+        elif item.layout():
+            clear_layout(item.layout())
+            item.layout().deleteLater()
+
+
 class _QContainer(QWidget):
     """
     Large containers which bundles chunks of information at a time. Exposing
@@ -36,8 +51,8 @@ class _QContainer(QWidget):
     @staticmethod
     def gui_action(f: Callable):
         """
-        Common decorator for letting GUI action hit an error message instead of
-        hard crashing.
+        Common decorator for letting GUI action create an error message instead
+        of hard crashing. Helps with debugging the information.
         """
 
         @functools.wraps(f)
@@ -45,12 +60,16 @@ class _QContainer(QWidget):
             try:
                 f(*args, **kwargs)
             except Exception as err:
+                print(traceback.format_exc())
                 logging.getLogger("GUI").error(str(err))
 
         return _wrap
 
     def _display_update(self):
-        # By default, do nothing
+        """
+        Method to overload to define what should be done when a refresh
+        signal is requested by the user. By default do nothing.
+        """
         pass
 
     def log(self, s: str, level: int) -> None:
@@ -139,18 +158,11 @@ class _QConfirmationDialog(QDialog):
         self.setLayout(self._layout)
 
 
-def clear_layout(layout):
-    """Clearing the contents of a Layout"""
-    for i in reversed(range(layout.count())):
-        item = layout.itemAt(i)
-        if isinstance(item.widget(), QWidget):
-            item.widget().deleteLater()
-        elif item.layout():
-            clear_layout(item.layout())
-            item.layout().deleteLater()
-
-
 class _QRunButton(QPushButton):
+    """
+    Button that handles the locking of other buttons when clicked. See the
+    set_lock method in the main session handle
+    """
 
     def __init__(self, session: GUISession, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -160,18 +172,26 @@ class _QRunButton(QPushButton):
         # carry out this action? Default is to always set to be True
         self.session_config_valid = True
 
-    def set_run(self, f: Callable, threaded=False):
+    def run_connect(self, f: Callable, threaded=False):
+        """
+        Additional wrapper the callable action which ensures that the interface
+        is properly locked the the run call is created. The threaded flag is
+        used to indicate that the callable method will spawn a thread in a
+        separate method and thus should not unlock the buttons when the method
+        terminates.
+        """
+
         def _wrap(event):
-            # Early return if this somehow slipped past run_lock
             if self.session.run_lock:
+                # Early return if this somehow slipped past run_lock
                 self.setDisabled(True)
                 return
-            self.recursive_set_lock(True)  # Locking the button
+            # Locking buttons and releasing if not a threaded method
+            self.session.lock_buttons(True)
             f()
             if not threaded:
-                # Thread processes will need to be released by thread finish
-                # signals
-                self.recursive_set_lock(False)
+                self.session.lock_buttons(False)
+                self.session.refresh()
 
         self.clicked.connect(_wrap)
 
@@ -184,19 +204,22 @@ class _QRunButton(QPushButton):
     def _set_lock(self):
         self._display_update()
 
-    def recursive_set_lock(self, lock: Optional[bool] = None):
-        """Locking all children display elements"""
-        if lock is not None:
-            self.session.run_lock = lock
 
-        def _lock(element: QWidget):
-            """Recursively updating the various elements"""
-            if isinstance(element, _QRunButton):
-                element._set_lock()
-            for child in element.children():
-                _lock(child)
+class _QInteruptButton(QPushButton):
+    """
+    Buttons to only be enabled after global run_lock is set to true. The logic
+    for how this should be handled by the implementing class and not here.
+    """
 
-        _lock(self.session)
+    def __init__(self, session: GUISession, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.session = session
+
+    def _display_update(self):
+        self.setEnabled(self.session.run_lock)
+
+    def _set_lock(self):
+        self._display_update()
 
 
 class _QLabelHandler(logging.Handler):
@@ -216,12 +239,15 @@ class _QThreadableTQDM(QObject):
     progress = pyqtSignal(int)
     clear = pyqtSignal()
 
-    def __init__(self, x: Iterable, *args, **kwargs):
+    def __init__(self, session: GUISession, x: Iterable, *args, **kwargs):
         super().__init__()
         self._iterable = x
+        self.session = session
 
     def __iter__(self):
         for idx, ret in enumerate(self._iterable):
+            if self.session.interupt_flag:
+                raise InterruptedError("Interupted by user!!")
             self.progress.emit(idx + 1)
             yield ret
         self.clear.emit()

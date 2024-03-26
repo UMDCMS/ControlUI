@@ -42,8 +42,8 @@ class SessionLoader(_QContainer):
         self.load_existing_input.on_textchange(self.check_existing_inputs)
 
         # Defining the run routines
-        self.load_new_button.set_run(self.load_new)
-        self.load_existing_button.set_run(self.load_existing)
+        self.load_new_button.run_connect(self.load_new)
+        self.load_existing_button.run_connect(self.load_existing)
 
         # General display update based on current session status
         self.__init_layout__()

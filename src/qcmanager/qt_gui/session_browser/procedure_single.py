@@ -24,6 +24,7 @@ from ..gui_session import GUISession
 from ..qt_helper import (
     _QComboPlaceholder,
     _QContainer,
+    _QInteruptButton,
     _QLineEditDefault,
     _QRunButton,
     _QSpinBoxDefault,
@@ -75,8 +76,10 @@ class SingleProcedureTab(_QContainer):
         self.input_map = {}
 
         # Buttons for users to press
-        self.run_button = _QRunButton(self.session, f"Run {procedure_class.__name__}")
-        self.run_button.set_run(self.run_procedure, threaded=True)
+        self.run_button = _QRunButton(
+            self.session, f"Run {self.procedure_class.__name__}"
+        )
+        self.run_button.run_connect(self.run_procedure, threaded=True)
         self.clear_button = QPushButton("Clear")
         self.clear_button.clicked.connect(self.revert_default)
 
@@ -126,13 +129,20 @@ class SingleProcedureTab(_QContainer):
         self._worker.finished.connect(self._thread.quit)
         self._worker.finished.connect(self._worker.deleteLater)
 
-        # Additional tiems to run after thread has completed
-        self._thread.finished.connect(lambda: self.loginfo("Completed running!!"))
-        self._thread.finished.connect(lambda: self.run_button.recursive_set_lock(False))
-        self._thread.finished.connect(lambda: self.session.refresh())
+        # Additional items to run after thread has completed
+        self._thread.finished.connect(self._post_procedure)
         self._thread.finished.connect(self._thread.deleteLater)
-        # Starting the main thread
+        # Starting the execution thread
         self._thread.start()
+
+    def _post_procedure(self):
+        self.loginfo(f"Completed running {self.procedure_class.__name__}")
+        self.session.lock_buttons(False)
+        # Clean up to ensure that all in-use items are cleaned up
+        self.session.interupt_flag = False
+        for pbar in self.session.message_container.progress_bars:
+            pbar.clear()
+        self.session.refresh()
 
     def revert_default(self):
         for _, input_widget, __ in self.input_map.values():
@@ -186,7 +196,7 @@ class SingleProcedureTab(_QContainer):
         if parser is None:
             spin_min, spin_max = -999999, 999999
         elif not isinstance(parser, arg_validation.Range):
-            spin_min, spin_ax = -999999, 999999
+            spin_min, spin_max = -999999, 999999
         else:
             spin_min, spin_max = parser.min_val, parser.max_val
 
@@ -238,9 +248,10 @@ class SessionRunSingleProcedure(_QContainer):
     def __init__(self, session: GUISession):
         super().__init__(session)
 
-        self.interupt_button = QPushButton("INTERUPT")
+        self.interupt_button = _QInteruptButton(session, "INTERUPT")
         self.tabs = QTabWidget()
         self.__init_layout__()
+        self.interupt_button.clicked.connect(self.send_interupt)
 
     def __init_layout__(self):
         self._outer = QVBoxLayout()
@@ -256,3 +267,9 @@ class SessionRunSingleProcedure(_QContainer):
             )
         self._inner.addWidget(self.tabs)
         self._inner.addWidget(self.interupt_button)
+
+    def send_interupt(self):
+        """Interupt the current running process"""
+        self.session.interupt_flag = True
+        print("Sending interupt")
+        pass

@@ -51,9 +51,9 @@ class TBConnectionPanel(_QContainer):
         # Augmenting display based on current sessions status
         self.__init_layout__()
         self._display_update()
-        self.connect_button.set_run(self.tb_connect)
+        self.connect_button.run_connect(self.tb_connect)
         self.discard_button.clicked.connect(self.tb_clear)
-        self.disconnect_button.set_run(self.tb_disconnect)
+        self.disconnect_button.run_connect(self.tb_disconnect)
         self.update_timer.timeout.connect(self.update_plot_data)
         self.update_timer.start()
 

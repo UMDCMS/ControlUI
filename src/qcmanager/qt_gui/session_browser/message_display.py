@@ -64,7 +64,7 @@ class SessionMessageDisplay(_QContainer):
 
         p_item = _get_first_unused()
         p_item.pre_loop(name=kwargs.get("desc", "Progress"), total=len(x))
-        thread_tqdm = _QThreadableTQDM(x, *args, **kwargs)
+        thread_tqdm = _QThreadableTQDM(self.session, x, *args, **kwargs)
         p_item.moveToThread(thread_tqdm.thread())
         thread_tqdm.progress.connect(p_item.progress)
         thread_tqdm.clear.connect(p_item.clear)

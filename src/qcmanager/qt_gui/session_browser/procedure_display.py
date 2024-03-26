@@ -129,7 +129,7 @@ class ProcedureTextDisplay(_QContainer):
         self.logical_label.setText(
             "Complete"
             if self.result.status_code[0] == 0
-            else f"[{self.result.status_code}] {self.result.status_code[1]} "
+            else f"[{self.result.status_code[0]}] {self.result.status_code[1]} "
         )
         clear_layout(self.procedure_args_layout)
         for k, v in self.result.input.items():
