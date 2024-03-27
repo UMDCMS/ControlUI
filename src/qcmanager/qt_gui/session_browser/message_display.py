@@ -32,7 +32,7 @@ class SessionMessageDisplay(_QContainer):
 
         for index, p in enumerate(self.progress_bars):
             self._layout.addWidget(p.desc_label, 2 + index, 0)
-            self._layout.addWidget(p.pbar_label, 2 + index, 1)
+            self._layout.addWidget(p.pbar_widget, 2 + index, 1)
             p.clear()
 
         self._layout.setColumnStretch(0, 1)

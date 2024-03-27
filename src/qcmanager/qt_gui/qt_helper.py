@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox,
     QLabel,
     QLineEdit,
+    QProgressBar,
     QPushButton,
     QSpinBox,
     QVBoxLayout,
@@ -275,13 +276,11 @@ class _QThreadableTQDM(QObject):
 
 class _QPBarContainer(QWidget):
     def __init__(self):
-        # Graphical update are prone to crashing when considering threading...
-        # Hacking together a text-based display for progress instead
         super().__init__()
 
         # Display elements
         self.desc_label = QLabel("")
-        self.pbar_label = QLabel("")  # Using text based progress bar??
+        self.pbar_widget = QProgressBar()
         self.tqdm_instance: _QThreadableTQDM._WrapTQDM = None
 
     def __init_layout__(self):
@@ -296,8 +295,9 @@ class _QPBarContainer(QWidget):
 
         # Setting the display elements to be visible
         self.desc_label.show()
-        self.pbar_label.show()
+        self.pbar_widget.show()
         self.desc_label.setText(self.tqdm_instance.tqdm_bar.desc)
+        self.pbar_widget.setMaximum(self.tqdm_instance.tqdm_bar.total)
 
         # Connecting the signals to display element update
         self.tqdm_instance.progress.connect(self.progress)
@@ -308,15 +308,18 @@ class _QPBarContainer(QWidget):
         tqdm_bar = self.tqdm_instance.tqdm_bar
         desc = tqdm_bar.desc
 
+        self.pbar_widget.setValue(tqdm_bar.n)
+
+        # Getting the display text using the tqdm format bar
         format_dict = {k: v for k, v in tqdm_bar.format_dict.items()}
-        format_dict["ncols"] = 150  # Length 0 / stat only progress bar
+        format_dict["ncols"] = 0  # Length 0 / stat only progress bar
         pbar_str = tqdm_bar.format_meter(**format_dict)
         pbar_str = pbar_str[len(desc) + 1 :]
 
-        self.pbar_label.setText(pbar_str)
-        self.pbar_label.setStyleSheet("font-family: monospace")
+        self.pbar_widget.setFormat(pbar_str)
+        self.pbar_widget.setStyleSheet("font-family: monospace")
 
     def clear(self):
         self.in_use = False
         self.desc_label.hide()
-        self.pbar_label.hide()
+        self.pbar_widget.hide()
