@@ -19,7 +19,8 @@ class GUISession(Session, QWidget):
         # _QRunButton.
         self.run_lock: bool = False
 
-        # Addtional flag to indicate whether a process should be terminated
+        # Addtional flag to indicate whether a process should be terminated by
+        # a user interruption signal
         self.interupt_flag: bool = False
 
         # Reference to the container that will be responsible for holding the
@@ -49,7 +50,6 @@ class GUISession(Session, QWidget):
         """
 
         def recursive_update(element: QWidget):
-            """Recursively updating the various elements"""
             if hasattr(element, "_display_update"):
                 element._display_update()
             for child in element.children():
