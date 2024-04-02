@@ -1,17 +1,14 @@
 import functools
 import logging
 import traceback
-from typing import Callable, Iterable, List
+from typing import Callable, List
 
-import tqdm
-from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtWidgets import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
     QLabel,
     QLineEdit,
-    QProgressBar,
     QPushButton,
     QSpinBox,
     QVBoxLayout,
@@ -234,92 +231,3 @@ class _QLabelHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord):
         self.label.setText(record.msg)
-
-
-class _QThreadableTQDM(QObject):
-    # A threadable loop object. As we cannot have multiple inheritance with
-    # QObjects, we will create a tqdm object to use as styling of the object.
-    # We will still use the underlying TQDM object to help with styling and
-    # avoiding excessive signal generation
-    progress = pyqtSignal(int)
-    clear = pyqtSignal()
-
-    class _WrapTQDM(tqdm.tqdm):
-        # Thin wrapper to automatically handle the emit progress signal
-        def __init__(self, obj, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self._parent = obj
-
-        def update(self, n=1):
-            super().update(n)
-            self._parent.progress.emit(self.n)
-
-    def __init__(self, session: GUISession, x: Iterable, *args, **kwargs):
-        super().__init__()
-        self.tqdm_bar = _QThreadableTQDM._WrapTQDM(self, x, *args, **kwargs)
-        # Add reference to main session object to capture the various signals
-        self.session = session
-
-    def __iter__(self):
-        # main iteration class that is used to generate the signals. Mimicking
-        # the structure and signal of the tqdm.std.__iter__ method:
-        # See here:
-        # https://github.com/tqdm/tqdm/blob/master/tqdm/std.py#L1160
-        try:
-            for x in self.tqdm_bar:
-                if self.session.interupt_flag:
-                    raise InterruptedError("Interupted by user!!")
-                yield x
-        finally:
-            self.clear.emit()
-
-
-class _QPBarContainer(QWidget):
-    def __init__(self):
-        super().__init__()
-
-        # Display elements
-        self.desc_label = QLabel("")
-        self.pbar_widget = QProgressBar()
-        self.tqdm_instance: _QThreadableTQDM._WrapTQDM = None
-
-    def __init_layout__(self):
-        # No explicit layout would be added here. As the display elements would
-        # most likely set want to be the set by the solution
-        self.pbar_label.setStyleSheet("font-family: monospace")
-
-    def prepare(self, instance: _QThreadableTQDM._WrapTQDM):
-        # Wrapping the instances
-        self.in_use = True
-        self.tqdm_instance = instance
-
-        # Setting the display elements to be visible
-        self.desc_label.show()
-        self.pbar_widget.show()
-        self.desc_label.setText(self.tqdm_instance.tqdm_bar.desc)
-        self.pbar_widget.setMaximum(self.tqdm_instance.tqdm_bar.total)
-
-        # Connecting the signals to display element update
-        self.tqdm_instance.progress.connect(self.progress)
-        self.tqdm_instance.clear.connect(self.clear)
-
-    @_QContainer.gui_action
-    def progress(self, x):
-        tqdm_bar = self.tqdm_instance.tqdm_bar
-        desc = tqdm_bar.desc
-
-        self.pbar_widget.setValue(tqdm_bar.n)
-
-        # Getting the display text using the tqdm format bar
-        format_dict = {k: v for k, v in tqdm_bar.format_dict.items()}
-        format_dict["ncols"] = 0  # Length 0 / stat only progress bar
-        pbar_str = tqdm_bar.format_meter(**format_dict)
-        pbar_str = pbar_str[len(desc) + 1 :]
-
-        self.pbar_widget.setFormat(pbar_str)
-        self.pbar_widget.setStyleSheet("font-family: monospace")
-
-    def clear(self):
-        self.in_use = False
-        self.desc_label.hide()
-        self.pbar_widget.hide()
