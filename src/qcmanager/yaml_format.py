@@ -14,8 +14,8 @@ from .utils import timestampd, timestamps
 
 class DataEntry:
     """
-    Data entry for a collected file. It must contain a path, a description, and
-    a time stamp string (defaults to the time of creation). All other keyword
+    Data entry for a data file. It must contain a path, a description, and a
+    time stamp string (defaults to the time of creation). All other keyword
     arguments will be set as named attributes.
     """
 
@@ -32,7 +32,7 @@ class SingularResult:
     """
     Singular results for either a single channel or a summary of the board.
     Each single result requires at least a status code and a description
-    string, all other keyword arguments will be used to store the results
+    string. All other keyword arguments will be used to store the results
     """
 
     BOARD = -999  # Dummy channel results set for board status
@@ -45,6 +45,15 @@ class SingularResult:
             setattr(self, k, v)
 
 
+class StatusCode:
+    # Simple class for naming the logical status codes.
+    # Mimicking the structure found here:
+    # https://stackoverflow.com/questions/1101957/are-there-any-standard-exit-status-codes-in-linux
+    SUCCESS = 0
+    UNKNOWN_ERROR = 1
+    SIG_INTERUPT = 130  # User interupt
+
+
 @dataclass
 class ProcedureResult:
     # Items to be automatically generated
@@ -55,13 +64,13 @@ class ProcedureResult:
     status_code: Tuple[int, str]  # Logical execution status
 
     # List of files that are produced by the procedure to be tracked either for
-    # plotting or for later procedures.
+    # plotting or for later procedures calls.
     data_files: List[DataEntry] = field(default_factory=lambda: [])
 
-    # Summary the overall board status of the overall procedure
+    # Summary the overall board status of the defined procedure
     board_summary: Optional[SingularResult] = None
 
-    # Summary results of each of the channel results
+    # Summary of each readout channels
     channel_summary: List[SingularResult] = field(default_factory=lambda: [])
 
     @classmethod

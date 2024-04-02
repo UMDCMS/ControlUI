@@ -28,6 +28,3 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.dynamic]
 version = {attr = "qcmanager.__version__"}
-
-[tool.flake8]
-max-line-length = 120

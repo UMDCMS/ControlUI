@@ -13,12 +13,13 @@ import logging
 import os
 import shutil
 import time
+import traceback
 from dataclasses import dataclass
 from typing import Callable, Iterable
 
 from ..hw.tileboard_zmq import TBController
 from ..utils import _str_, timestamps, to_yaml
-from ..yaml_format import DataEntry, ProcedureResult
+from ..yaml_format import DataEntry, ProcedureResult, StatusCode
 
 
 @dataclass(kw_only=True)
@@ -59,7 +60,7 @@ class ProcedureBase(object):
         Additional items to create after all kwargs have been complete
         """
         self.result: ProcedureResult = ProcedureResult(
-            name=self.__class__.__name__,
+            name=self.name,
             _start_time=timestamps(),
             _end_time=timestamps(),
             input={k: v for k, v in self.__dict__.items() if k != "store_base"},
@@ -67,17 +68,27 @@ class ProcedureBase(object):
         )
 
     def run_with(self, *args, **kwargs) -> ProcedureResult:
+        """
+        Wrapper for the main run method to be wrapped to handle and store
+        exception results. Ideally, we should keep the error messages concise
+        and only do full dumps for unknown errors.
+        """
+        # TODO: Complete the various exception methods
         try:
             self.run(*args, **kwargs)
-        except ValueError as err:
-            self.logerror(str(err))
-            self.result.status_code = (1000, "Missing procudure")
+        except KeyboardInterrupt:
+            self.logwarn("User interupt signal received")
+            self.result.status_code = (StatusCode.SIG_INTERUPT, "")
         except Exception as err:
-            self.logerror(str(err))
-            self.result.status_code = (1111, "Execution error")
+            # Generic error. Supposedly it should not reach this stage. Passing
+            # the full error message to logger information.
+            self.logerror(
+                f"Unknown error! [{str(err)}]", error_trace=traceback.format_exc()
+            )
+            self.result.status_code = (StatusCode.UNKNOWN_ERROR, str(err))
         finally:
-            self.loginfo("Return results")
             self.result._end_time = timestamps()
+            self.loginfo(f"{self.name} completed")
             return self.result
 
     @property
@@ -104,17 +115,19 @@ class ProcedureBase(object):
     Additional methods used for logging message (avoid using raw prints!!)
     """
 
-    def log(self, s: str, level: int) -> None:
-        logging.getLogger(f"QACProcedure.{self.name}").log(level=level, msg=_str_(s))
+    def log(self, msg: str, level: int, *args, **kwargs) -> None:
+        logging.getLogger(f"QACProcedure.{self.name}").log(
+            level=level, msg=_str_(msg), *args, **kwargs
+        )
 
-    def loginfo(self, s: str) -> None:
-        self.log(s, logging.INFO)
+    def loginfo(self, msg: str) -> None:
+        self.log(msg, logging.INFO)
 
-    def logwarn(self, s: str) -> None:
-        self.log(s, logging.WARNING)
+    def logwarn(self, msg: str) -> None:
+        self.log(msg, logging.WARNING)
 
-    def logerror(self, s: str) -> None:
-        self.log(s, logging.ERROR)
+    def logerror(self, msg: str) -> None:
+        self.log(msg, logging.ERROR)
 
     """
     Common methods for interacting with hardware interfaces.

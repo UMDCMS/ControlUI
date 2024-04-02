@@ -118,6 +118,7 @@ class Session(object):
         ]
 
     def iterate(self, x: Iterable, *args, **kwargs):
-        # Method to keep track of long loops. Will be over written in the GUI
-        # session
+        # Returning an iterator wrapper to better keep track of long loops. The
+        # simplest method uses the tqdm package. This will be overwritten in
+        # the GUI session
         return tqdm.tqdm(x, *args, **kwargs)
