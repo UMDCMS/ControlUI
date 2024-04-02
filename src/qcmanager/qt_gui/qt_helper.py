@@ -218,16 +218,3 @@ class _QInteruptButton(QPushButton):
 
     def _set_lock(self):
         self._display_update()
-
-
-class _QLabelHandler(logging.Handler):
-    """
-    Have a label show the latest logging output.
-    """
-
-    def __init__(self, label: QLabel, level: int = logging.NOTSET):
-        super().__init__(level=level)
-        self.label = label
-
-    def emit(self, record: logging.LogRecord):
-        self.label.setText(record.msg)
