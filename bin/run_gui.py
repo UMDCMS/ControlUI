@@ -1,4 +1,5 @@
 import logging
+import logging.config
 import sys
 
 from PyQt5.QtWidgets import QApplication
@@ -9,7 +10,9 @@ if __name__ == "__main__":
     # Initializing the various items
     # Set the logger to log everything
     logging.root.setLevel(logging.NOTSET)
-    logging.basicConfig(level=logging.NOTSET)
+    logging.config.dictConfig(
+        config={"level": logging.NOTSET, "handlers": [], "version": 1.0}
+    )
     logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
     # Do not run any parsing here
