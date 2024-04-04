@@ -152,9 +152,11 @@ class SessionLoader(_QContainer):
         self.load_existing_input.clear()
         template_files = glob.glob("results/*")
         template_files = sorted([os.path.basename(x) for x in template_files])
-        for f in template_files:
+        for idx, f in enumerate(template_files):
             self.load_existing_input.addItem(f)
-        self.load_existing_button.session_config_valid = True
+
+        self.load_existing_button.session_config_valid = False
+        self.load_existing_input.revert_default()
 
     @_QContainer.gui_action
     def check_new_inputs(self, event=None):
