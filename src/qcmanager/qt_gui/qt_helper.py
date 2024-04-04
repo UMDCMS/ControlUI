@@ -3,6 +3,7 @@ import logging
 import traceback
 from typing import Callable, List
 
+from PyQt5.QtCore import QMetaMethod, QObject
 from PyQt5.QtWidgets import (
     QComboBox,
     QDialog,
@@ -31,6 +32,21 @@ def clear_layout(layout):
         elif item.layout():
             clear_layout(item.layout())
             item.layout().deleteLater()
+
+
+def get_signal(obj: QObject, signal_name: str):
+    """
+    Getting the signal object associated to a QObject by the signal name
+    """
+    for i in range(obj.metaObject().methodCount()):
+        meta_method = obj.metaObject().method(i)
+        if not meta_method.isValid():
+            continue
+        if (
+            meta_method.methodType() == QMetaMethod.Signal
+            and meta_method.name() == signal_name
+        ):
+            return meta_method
 
 
 class _QContainer(QWidget):
@@ -133,6 +149,9 @@ class _QComboPlaceholder(QComboBox):
     def on_textchange(self, f: Callable):
         """Short hand"""
         self.lineEdit().textChanged.connect(f)
+
+    def revert_default(self):
+        self.lineEdit().setText("")
 
 
 class _QConfirmationDialog(QDialog):
