@@ -82,10 +82,12 @@ class ProcedureBase(object):
         except Exception as err:
             # Generic error. Supposedly it should not reach this stage. Passing
             # the full error message to logger information.
-            self.logerror(
-                f"Unknown error! [{str(err)}]", error_trace=traceback.format_exc()
-            )
+            print(traceback.format_exc())
             self.result.status_code = (StatusCode.UNKNOWN_ERROR, str(err))
+            self.logerror(
+                f"Unknown error! [{str(err)}]",
+                extra={"error_trace": traceback.format_exc()},
+            )
         finally:
             self.result._end_time = timestamps()
             self.loginfo(f"{self.name} completed")
@@ -120,14 +122,14 @@ class ProcedureBase(object):
             level=level, msg=_str_(msg), *args, **kwargs
         )
 
-    def loginfo(self, msg: str) -> None:
-        self.log(msg, logging.INFO)
+    def loginfo(self, msg: str, *args, **kwargs) -> None:
+        self.log(msg, logging.INFO, *args, **kwargs)
 
-    def logwarn(self, msg: str) -> None:
-        self.log(msg, logging.WARNING)
+    def logwarn(self, msg: str, *args, **kwargs) -> None:
+        self.log(msg, logging.WARNING, *args, **kwargs)
 
-    def logerror(self, msg: str) -> None:
-        self.log(msg, logging.ERROR)
+    def logerror(self, msg: str, *args, **kwargs) -> None:
+        self.log(msg, logging.ERROR, *args, **kwargs)
 
     """
     Common methods for interacting with hardware interfaces.
