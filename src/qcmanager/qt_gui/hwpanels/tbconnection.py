@@ -26,14 +26,14 @@ class TBConnectionPanel(_QContainer):
     def __init__(self, session: GUISession):
         super().__init__(session)
         # Defining the basic layout
-        self.box = QGroupBox("TBT connection", self)
+        self.box = QGroupBox("TBT connection")
 
         # Defining the inputs
-        self.puller_ip_input = _QLineEditDefault("localhost", self)
-        self.puller_port_input = _PortSpinBox(5555, self)
-        self.control_ip_input = _QLineEditDefault("10.42.0.1", self)
-        self.i2c_port_input = _PortSpinBox(6000, self)
-        self.daq_port_input = _PortSpinBox(5000, self)
+        self.puller_ip_input = _QLineEditDefault("localhost")
+        self.puller_port_input = _PortSpinBox(5555)
+        self.control_ip_input = _QLineEditDefault("10.42.0.1")
+        self.i2c_port_input = _PortSpinBox(6000)
+        self.daq_port_input = _PortSpinBox(5000)
 
         # Connecting and disconnecting should be a "run button", as we should
         # not disconnect the tileboard when the something is running
@@ -58,10 +58,10 @@ class TBConnectionPanel(_QContainer):
         self.update_timer.start()
 
     def __init_layout__(self):
-        self._box_outer = QVBoxLayout(self)
-        self._box_inner = QVBoxLayout(self)
+        self._box_outer = QVBoxLayout()
+        self._box_inner = QVBoxLayout()
 
-        self._form_layout = QFormLayout(self)
+        self._form_layout = QFormLayout()
         self._form_layout.addRow("Puller IP", self.puller_ip_input)
         self._form_layout.addRow("Puller port", self.puller_port_input)
         self._form_layout.addRow("Controller IP", self.control_ip_input)
@@ -69,7 +69,7 @@ class TBConnectionPanel(_QContainer):
         self._form_layout.addRow("DAQ port", self.daq_port_input)
         self._box_inner.addLayout(self._form_layout)
 
-        self._button_layout = QHBoxLayout(self)
+        self._button_layout = QHBoxLayout()
         self.connect_button.setToolTip("Connect to new TB controller with settings")
         self.disconnect_button.setToolTip("Disconnect from connected TB controller")
         self.discard_button.setToolTip("Clear settings and show existing (or default)")

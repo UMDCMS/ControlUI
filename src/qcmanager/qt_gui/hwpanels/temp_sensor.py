@@ -8,9 +8,9 @@ class TempSensorPanel(_QContainer):
     def __init__(self, session: GUISession):
         super().__init__(session)
 
-        self._outer = QVBoxLayout(self)
-        self._box = QGroupBox("Temperature Sensors", self)
-        self._box_layout = QVBoxLayout(self)
+        self._outer = QVBoxLayout()
+        self._box = QGroupBox("Temperature Sensors")
+        self._box_layout = QVBoxLayout()
         for i in range(1, 6):
             self._box_layout.addWidget(_QRunButton(self.session, f"Button {i}"))
         self._box.setLayout(self._box_layout)
