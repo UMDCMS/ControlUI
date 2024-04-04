@@ -2,7 +2,7 @@ import importlib
 from typing import Callable, List, Optional
 
 import matplotlib.backends.backend_qt5agg
-from PyQt5.QtCore import QAbstractTableModel, Qt
+from PyQt5.QtCore import QAbstractTableModel, Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QFormLayout,
     QGridLayout,
@@ -51,9 +51,14 @@ class SessionProcedureDisplay(_QContainer):
     def __init__(self, session: GUISession):
         super().__init__(session)
 
+        self.list_display = ProcudureSummaryList(self.session)
         self.detail_display = ProcedureDetailDisplay(self.session)
-        self.list_display = ProcudureSummaryList(self.session, self.detail_display)
         self.__init_layout__()
+
+        # Connecting signals
+        self.list_display.display_detailed_signal.connect(
+            self.detail_display.display_result
+        )
 
     def __init_layout__(self):
         self._outer = QVBoxLayout()
@@ -451,39 +456,42 @@ class ProcedureTableModel(QAbstractTableModel):
 
 
 class ProcudureSummaryList(_QContainer):
-    def __init__(self, session: GUISession, detail_view: ProcedureDetailDisplay):
+    display_detailed_signal = pyqtSignal(int)
+
+    def __init__(self, session: GUISession):
         super().__init__(session)
         self.table_view = QTableView()
         self.table_model = None  # Updated later
-        # Reverence to detailed view container to update information
-        self.detail_view = detail_view
+        self.message_label = QLabel("")
 
         self.__init_layout__()
         self._display_update()
+        self.table_view.clicked.connect(self.display_detail)
 
     def __init_layout__(self):
         self._layout = QVBoxLayout()
         self.setLayout(self._layout)
+        self._layout.addWidget(self.message_label)
+        self._layout.addWidget(self.table_view)
         self.table_view.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeToContents
         )
 
     def _display_update(self):
-        clear_layout(self._layout)
         if self.session.board_id == "":
-            self._layout.addWidget(QLabel("No session loaded"))
+            self.table_view.hide()
+            self.message_label.show()
+            self.message_label.setText("No session loaded")
         elif len(self.session.results) == 0:
-            self._layout.addWidget(QLabel("No results for session"))
-            self.setLayout(self._layout)
+            self.table_view.hide()
+            self.message_label.show()
+            self.message_label.setText("No results for session")
         else:
+            self.table_view.show()
+            self.message_label.hide()
             self.table_model = ProcedureTableModel(self.session.results)
-            self.table_view = QTableView()
             self.table_view.setModel(self.table_model)
-            self._layout.addWidget(self.table_view)
-            self.table_view.horizontalHeader().setSectionResizeMode(
-                QHeaderView.ResizeToContents
-            )
-            self.table_view.clicked.connect(self.display_detail)
+            self.display_detailed_signal.emit(1)
 
     def display_detail(self, item):
-        self.detail_view.display_result(item.row())
+        self.display_detailed_signal.emit(item.row())

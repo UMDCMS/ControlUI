@@ -269,6 +269,7 @@ class SessionMessageDisplay(_QContainer):
         restrictions. The main constructer must make sure that the main session
         Qwidget points to this class method
         """
+
         def _get_first_unused() -> _QPBarContainer:
             for p in self.progress_bars:
                 if not p.in_use:
