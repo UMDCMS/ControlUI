@@ -1,5 +1,5 @@
 import importlib
-from typing import Callable, List, Optional
+from typing import Any, Callable, List, Optional
 
 import matplotlib.backends.backend_qt5agg
 from PyQt5.QtCore import QAbstractTableModel, Qt, pyqtSignal
@@ -138,7 +138,7 @@ class ProcedureTextDisplay(_QContainer):
         )
         clear_layout(self.procedure_args_layout)
         for k, v in self.result.input.items():
-            self.procedure_args_layout.addRow(k, QLabel(str(v)))
+            self.procedure_args_layout.addRow(k, self.make_argument_label(v))
         # Board level summary
         clear_layout(self.board_summary_layout)
         self.board_summary_layout.addRow(
@@ -183,6 +183,16 @@ class ProcedureTextDisplay(_QContainer):
             self.channel_detail_container.addWidget(detail)
             self.channel_mapping[res.channel] = detail
             summary.mousePressEvent = show_index(res.channel)
+
+    @classmethod
+    def make_argument_label(cls, argument_value: Any) -> QLabel:
+        label_str = str(argument_value)
+        if len(label_str) > 30:
+            label = QLabel("<u>..." + label_str[-30:] + "</u>")
+            label.setToolTip(label_str)
+            return label
+        else:
+            return QLabel(label_str)
 
     @classmethod
     def add_singleresult_items(cls, layout: QFormLayout, r: SingularResult):
