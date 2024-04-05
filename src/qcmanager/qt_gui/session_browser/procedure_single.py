@@ -22,6 +22,7 @@ from ..gui_session import GUISession
 from ..qt_helper import (
     _QComboPlaceholder,
     _QContainer,
+    _QDoubleSpinBoxDefault,
     _QInteruptButton,
     _QLineEditDefault,
     _QRunButton,
@@ -215,9 +216,26 @@ class SingleProcedureTab(_QContainer):
 
     def create_float_param_input(self, param: inspect.Parameter) -> QWidget:
         # TODO: better way for ensuring the input is a float??
-        if proc_parsing.has_default(param):
-            return _QLineEditDefault(str(param.default))
-        return QLineEdit()
+        parser = proc_parsing.get_parser(param)
+
+        # Getting boundary values
+        if parser is None:
+            spin_min, spin_max = -999999, 9999999
+        elif not isinstance(parser, arg_validation.Range):
+            spin_min, spin_max = -999999, 9999999
+        else:
+            spin_min, spin_max = parser.min_val, parser.max_val
+
+        # Getting the default value
+        if not proc_parsing.has_default(param):
+            def_val = (spin_min + spin_max) / 2
+        else:
+            def_val = param.default
+
+        # Returning the created object
+        return _QDoubleSpinBoxDefault(
+            default=def_val, min_value=spin_min, max_value=spin_max
+        )
 
     def create_str_param_input(self, param: inspect.Parameter) -> QWidget:
         parser = proc_parsing.get_parser(param)
@@ -239,6 +257,8 @@ class SingleProcedureTab(_QContainer):
         if isinstance(arg_widget, QLineEdit):
             input_val = arg_widget.text()
         elif isinstance(arg_widget, _QSpinBoxDefault):
+            input_val = arg_widget.value()
+        elif isinstance(arg_widget, _QDoubleSpinBoxDefault):
             input_val = arg_widget.value()
         elif isinstance(arg_widget, _QComboPlaceholder):
             input_val = arg_widget.currentText()
