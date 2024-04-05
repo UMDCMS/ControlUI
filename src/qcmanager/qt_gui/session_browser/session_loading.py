@@ -191,35 +191,26 @@ class SessionLoader(_QContainer):
         board_type = self.load_new_type_input.currentText()
         board_id = self.load_new_id_input.text()
 
-        def _load_blank():
-            self.session.from_blank(board_type=board_type, board_id=board_id)
-            self.session.refresh()
-
         if self._has_session():
             if self._confirm_load_session():
-                _load_blank()
+                self.session.from_blank(board_type=board_type, board_id=board_id)
         else:
-            _load_blank()
+            self.session.from_blank(board_type=board_type, board_id=board_id)
 
     @_QContainer.gui_action
     def load_existing(self, event=None):
         target = self.load_existing_input.currentText()
         target_yaml = f"{self.session.LOCAL_STORE}/{target}/session.yaml"
 
-        def _load():
-            self.session.load_yaml(target_yaml)
-            self.session.refresh()
-
         # Do nothing if target session is already loaded
         if target == f"{self.session.board_type}.{self.session.board_id}":
-            self.session.refresh()
             return
 
         if self._has_session():
             if self._confirm_load_session():
-                _load()
+                self.session.load_yaml(target_yaml)
         else:
-            _load()
+            self.session.load_yaml(target_yaml)
 
     def _has_session(self):
         return self.session.board_id != "" or self.session.board_type != ""
