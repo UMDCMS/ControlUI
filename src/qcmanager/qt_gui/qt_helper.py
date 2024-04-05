@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
+    QDoubleSpinBox,
     QLabel,
     QLineEdit,
     QPushButton,
@@ -121,6 +122,22 @@ class _QSpinBoxDefault(QSpinBox):
         self._default = default
         self.setMinimum(min_value)
         self.setMaximum(max_value)
+        self.setValue(self._default)
+
+    def revert_default(self):
+        self.setValue(self._default)
+
+
+class _QDoubleSpinBoxDefault(QDoubleSpinBox):
+    def __init__(
+        self, default: float, min_value=0, max_value=99, precision=3, *args, **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        self._default = default
+        self.setMinimum(min_value)
+        self.setMaximum(max_value)
+        self.setDecimals(precision)
+        self.setSingleStep(10 ** (-precision))
         self.setValue(self._default)
 
     def revert_default(self):
