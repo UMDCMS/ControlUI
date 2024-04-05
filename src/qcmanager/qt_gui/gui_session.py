@@ -5,14 +5,15 @@ from PyQt5.QtWidgets import QWidget
 from ..session import Session
 
 
-class GUISession(Session, QWidget):
+class GUISession(Session):
     """
-    Main window widget that doubles as the main session instance
+    Extended session object, as interactions with the GUI will require slight
+    modifications to how the interfaces are handled. This will also contain the
+    outermost widget to be used by the application window.
     """
 
     def __init__(self):
-        Session.__init__(self)
-        QWidget.__init__(self)
+        super().__init__()
 
         # Additional flag for whether run-related buttons should be lock.
         # Buttons that should always check this flag is define as the
@@ -22,6 +23,9 @@ class GUISession(Session, QWidget):
         # Addtional flag to indicate whether a process should be terminated by
         # a user interruption signal
         self.interupt_flag: bool = False
+
+        # Object as the main window
+        self.main_container = QWidget()
 
         # Reference to the container that will be responsible for holding the
         # messages an progress bars, will need to be handle the layout
@@ -50,12 +54,13 @@ class GUISession(Session, QWidget):
         """
 
         def recursive_update(element: QWidget):
+            """Recursively updating the various elements"""
             if hasattr(element, "_display_update"):
                 element._display_update()
             for child in element.children():
                 recursive_update(child)
 
-        recursive_update(self)
+        recursive_update(self.main_container)
 
     def lock_buttons(self, lock: Optional[bool] = None):
         """
@@ -72,4 +77,4 @@ class GUISession(Session, QWidget):
             for child in element.children():
                 recursive_lock(child)
 
-        recursive_lock(self)
+        recursive_lock(self.main_container)

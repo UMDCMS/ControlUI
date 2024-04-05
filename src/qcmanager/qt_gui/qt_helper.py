@@ -60,7 +60,6 @@ class _QContainer(QWidget):
         # NOTE: Because GUISession has multiple inheritance it must be setup
         # set this way
         super().__init__()
-        self.setParent(session)
         self.session = session  # Reference to main session instance
 
     @staticmethod

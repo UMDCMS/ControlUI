@@ -32,11 +32,11 @@ def create_default_window() -> Tuple[QMainWindow, gui_session.GUISession]:
     session._outer_layout = QHBoxLayout()
     session._outer_layout.addLayout(session._hw_layout, stretch=0)
     session._outer_layout.addLayout(session._ses_layout, stretch=3)
-    session.setLayout(session._outer_layout)
+    session.main_container.setLayout(session._outer_layout)
 
     # Setting up the main window to be returned
     window = QMainWindow()
-    window.setCentralWidget(session)
+    window.setCentralWidget(session.main_container)
 
     # Setting up the master layout methods
     window.setWindowTitle("SiPM-on-tileboard QA/QC control")

@@ -1,7 +1,7 @@
 import inspect
 from typing import Any, Dict, Type
 
-from PyQt5.QtCore import QObject, Qt, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QThread
 from PyQt5.QtWidgets import (
     QGridLayout,
     QGroupBox,
@@ -30,14 +30,12 @@ from ..qt_helper import (
 )
 
 
-class ProcedureWorker(QObject):
+class SingleProcedureThread(QThread):
     """
-    Helper object to run the `run_single_procedure` method in a background
-    thread. Must be used otherwise all GUI elements would be locked and cannot
-    updated until the process has finished.
+    Wrapper around `run_single_procedure` to a QThread object to allow it to be
+    ran in the background. This allows for display elements to be continuously
+    updated, while the process is still running.
     """
-
-    finished = pyqtSignal()
 
     def __init__(
         self,
@@ -56,7 +54,6 @@ class ProcedureWorker(QObject):
             self.procedure_class,
             procedure_arguments=self.procedure_arguments,
         )
-        self.finished.emit()
 
 
 class SingleProcedureTab(_QContainer):
@@ -120,7 +117,7 @@ class SingleProcedureTab(_QContainer):
 
     def run_procedure(self):
         """Running the procedure in a separate thread"""
-        self._worker = ProcedureWorker(
+        self._thread = SingleProcedureThread(
             self.session,
             self.procedure_class,
             procedure_arguments={
@@ -128,12 +125,6 @@ class SingleProcedureTab(_QContainer):
                 for name, (t, i, p) in self.input_map.items()
             },
         )
-        self._thread = QThread()
-        self._worker.moveToThread(self._thread)
-        self._thread.started.connect(self._worker.run)
-        self._worker.finished.connect(self._thread.quit)
-        self._worker.finished.connect(self._worker.deleteLater)
-
         # Additional items to run after thread has completed
         self._thread.finished.connect(self._post_procedure)
         self._thread.finished.connect(self._thread.deleteLater)
@@ -173,7 +164,7 @@ class SingleProcedureTab(_QContainer):
         for index, (name, (param_type, param_input, param)) in enumerate(
             self.input_map.items()
         ):
-            param_label = QLabel(name)
+            param_label = QLabel(name + "<sup><u>?</u></sup>")
             param_label.setToolTip(proc_parsing.get_param_doc(param))
             column = index % SingleProcedureTab.N_COLUMNS
             row = index // SingleProcedureTab.N_COLUMNS
