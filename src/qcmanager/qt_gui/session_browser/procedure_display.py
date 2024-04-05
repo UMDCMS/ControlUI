@@ -2,7 +2,7 @@ import importlib
 from typing import Any, Callable, List, Optional
 
 import matplotlib
-import matplotlib.backends.backend_qt5agg
+import matplotlib.backends.backend_qt5agg as mplbackend
 from PyQt5.QtCore import QAbstractTableModel, Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QFormLayout,
@@ -22,10 +22,6 @@ from ...yaml_format import ProcedureResult, SingularResult
 from ..gui_session import GUISession
 from ..qt_helper import _QContainer, clear_layout
 
-# Aliases for simpler declaration
-FigureCanvas = matplotlib.backends.backend_qt5agg.FigureCanvasQTAgg
-NavigationToolbar = matplotlib.backends.backend_qt5agg.NavigationToolbar2QT
-
 
 class _QWrapLabel(QLabel):
     """Helper label to ensure that word wrapping is enabled by default"""
@@ -36,19 +32,29 @@ class _QWrapLabel(QLabel):
 
 
 class MplCanvasWidget(QWidget):
+    """
+    Wrapper for the default matplotlib FigureCanvas and the accompanying
+    Navigation tool bar, set in a fixed orientation.
+    """
+
     def __init__(self, figure: matplotlib.figure.Figure):
         super().__init__()
         self._layout = QHBoxLayout()
         self.setLayout(self._layout)
 
         self._figure = figure
-        self._canvas = FigureCanvas(self._figure)
-        self._toolbar = NavigationToolbar(self._canvas)
+        self._canvas = mplbackend.FigureCanvas(self._figure)
+        # Disabling coordinates, as it doesn't add much but makes display elements jump around
+        self._toolbar = mplbackend.NavigationToolbar2QT(self._canvas, coordinates=False)
         self._toolbar.setOrientation(Qt.Vertical)
+        self._toolbar.setMaximumWidth(100)
         self._layout.addWidget(self._canvas)
         self._layout.addWidget(self._toolbar)
+        self._layout.addStretch()
 
     def deleteLater(self):
+        # Closing figure though matplotlib to ensure memory resources is
+        # released.
         matplotlib.pyplot.close(self._figure)
         super().deleteLater()
 
@@ -248,6 +254,9 @@ class ProcedurePlotDisplay(_QContainer):
         self._display_update()
 
     def _display_update(self):
+        # QTabWidget does *not* delete objects when calling the clear object.
+        # Explicitly calling deleteLater to force matplotlib figures to be
+        # properly released.
         for idx in range(self._plot_view.count()):
             self._plot_view.widget(idx).deleteLater()
         if self.result is None:
