@@ -98,22 +98,21 @@ class SingleProcedureTab(_QContainer):
         self.build_input_widget()
 
     def __init_layout__(self):
-        self._outer_layout = QVBoxLayout()
-        self.setLayout(self._outer_layout)
         self._doc_label = QLabel(_str_(self.procedure_class.__doc__))
         self._doc_label.setWordWrap(True)
-        self._outer_layout.addWidget(self._doc_label)
         self._inputs = QVBoxLayout()
-        self._outer_layout.addLayout(self._inputs)
         self._grid = QGridLayout()
         self._inputs.addLayout(self._grid)
 
-        # Inserting input elements into grid layout
-        # Adding the run button
         self._button_layout = QHBoxLayout()
         self._button_layout.addWidget(self.run_button)
         self._button_layout.addWidget(self.clear_button)
         self._inputs.addLayout(self._button_layout)
+
+        self._outer_layout = QHBoxLayout()
+        self._outer_layout.addWidget(self._doc_label, stretch=1)
+        self._outer_layout.addLayout(self._inputs, stretch=2)
+        self.setLayout(self._outer_layout)
 
     def run_procedure(self):
         """Running the procedure in a separate thread"""

@@ -3,7 +3,14 @@ import os
 
 import yaml
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QGroupBox, QHBoxLayout, QLabel, QLineEdit, QVBoxLayout
+from PyQt5.QtWidgets import (
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QVBoxLayout,
+)
 
 from ...utils import _str_
 from ..gui_session import GUISession
@@ -80,19 +87,21 @@ class SessionLoader(_QContainer):
         self._load_existing_box_layout.addWidget(self.load_existing_button, stretch=10)
         self._load_existing_box.setLayout(self._load_existing_box_layout)
 
-        # Loading instructions boxes
-        self._action_layout.addWidget(self._load_new_box, stretch=1)
-        self._action_layout.addWidget(self._load_existing_box, stretch=1)
+        # Information for summary
+        self._summary_layout = QFormLayout()
+        self._summary_layout.addRow("<b>Board type</b>", self.boardtype_label)
+        self._summary_layout.addRow("<b>Board ID</b>", self.boardid_label)
+        self._summary_layout.addRow(
+            "<b>Procedure(s)</b> (Tot/S/F)", self.log_summary_label
+        )
+        self._summary_layout.addRow("<b>Last update</b>", self.update_label)
 
-        # Items for current summary
-        self._summary_layout = QHBoxLayout()
-        self._summary_layout.addWidget(self.boardtype_label)
-        self._summary_layout.addWidget(self.boardid_label)
-        self._summary_layout.addWidget(self.log_summary_label)
-        self._summary_layout.addWidget(self.update_label)
+        # Loading instructions boxes
+        self._action_layout.addLayout(self._summary_layout, stretch=1)
+        self._action_layout.addWidget(self._load_new_box, stretch=2)
+        self._action_layout.addWidget(self._load_existing_box, stretch=2)
 
         self._box_inner.addLayout(self._action_layout)
-        self._box_inner.addLayout(self._summary_layout)
         self.box.setLayout(self._box_inner)
         self._box_outer.addWidget(self.box)
         self.setLayout(self._box_outer)
@@ -109,32 +118,26 @@ class SessionLoader(_QContainer):
         if self.session.board_id == "" or self.session.board_type == "":
             """Early return if no board is loaded"""
             self.box.setTitle("Session (none loaded)")
-            self.boardtype_label.setText("")
-            self.boardid_label.setText("")
-            self.log_summary_label.setText("")
-            self.update_label.setText("")
+            self.boardtype_label.setText("N/A")
+            self.boardid_label.setText("N/A")
+            self.log_summary_label.setText("N/A")
+            self.update_label.setText("N/A")
             return
         self.box.setTitle(
             f"Session (loaded {self.session.board_type}@{self.session.board_id})"
         )
-        self.boardtype_label.setText(f"<b>Board type: </b>{self.session.board_type}")
-        self.boardid_label.setText(f"<b>Board ID: </b>{self.session.board_id}")
+        self.boardtype_label.setText(self.session.board_type)
+        self.boardid_label.setText(self.session.board_id)
         # Procedure-related summary strings
         total_run = len(self.session.results)
         success_run = len([x for x in self.session.results if x.is_valid])
         self.log_summary_label.setText(
-            "<b>Procedure(s)</b> (Tot/S/F): "
-            + f"{total_run}/{success_run}/{total_run-success_run}"
+            f"{total_run}/{success_run}/{total_run-success_run}"
         )
         self.update_label.setText(
-            "<b>Last update:</b>"
-            + (
-                "N/A"
-                if len(self.session.results) == 0
-                else self.session.results[-1].end_time.strftime(
-                    "%Y-%b-%d (%a), %I:%M%p"
-                )
-            )
+            "N/A"
+            if len(self.session.results) == 0
+            else self.session.results[-1].end_time.strftime("%Y-%b-%d (%a), %I:%M%p")
         )
 
     @_QContainer.gui_action
