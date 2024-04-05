@@ -1,6 +1,7 @@
 import importlib
 from typing import Any, Callable, List, Optional
 
+import matplotlib
 import matplotlib.backends.backend_qt5agg
 from PyQt5.QtCore import QAbstractTableModel, Qt, pyqtSignal
 from PyQt5.QtWidgets import (
@@ -35,16 +36,21 @@ class _QWrapLabel(QLabel):
 
 
 class MplCanvasWidget(QWidget):
-    def __init__(self, figure):
+    def __init__(self, figure: matplotlib.figure.Figure):
         super().__init__()
         self._layout = QHBoxLayout()
         self.setLayout(self._layout)
 
-        self._canvas = FigureCanvas(figure)
+        self._figure = figure
+        self._canvas = FigureCanvas(self._figure)
         self._toolbar = NavigationToolbar(self._canvas)
         self._toolbar.setOrientation(Qt.Vertical)
         self._layout.addWidget(self._canvas)
         self._layout.addWidget(self._toolbar)
+
+    def deleteLater(self):
+        matplotlib.pyplot.close(self._figure)
+        super().deleteLater()
 
 
 class SessionProcedureDisplay(_QContainer):
@@ -225,11 +231,16 @@ class ProcedureTextDisplay(_QContainer):
 class ProcedurePlotDisplay(_QContainer):
     def __init__(self, session: GUISession):
         super().__init__(session)
-        self.result = None
+        self.result: Optional[ProcedureResult] = None
         self.__init_layout__()
 
     def __init_layout__(self):
         self._layout = QVBoxLayout()
+        self._plot_view = QTabWidget()
+        self._plot_view.setMinimumWidth(800)
+        self._plot_view.setMinimumHeight(400)
+        self._plot_view.setTabPosition(QTabWidget.TabPosition.West)
+        self._layout.addWidget(self._plot_view)
         self.setLayout(self._layout)
 
     def display_result(self, result: Optional[ProcedureResult] = None):
@@ -237,9 +248,10 @@ class ProcedurePlotDisplay(_QContainer):
         self._display_update()
 
     def _display_update(self):
-        clear_layout(self._layout)
+        for idx in range(self._plot_view.count()):
+            self._plot_view.widget(idx).deleteLater()
         if self.result is None:
-            return  # Early exist
+            return  # Early exit
         try:
             plotlib = importlib.import_module(f"qcmanager.plotting.{self.result.name}")
         except Exception:
@@ -248,16 +260,11 @@ class ProcedurePlotDisplay(_QContainer):
             )
             return
 
-        plot_view = QTabWidget()
-        plot_view.setMinimumWidth(800)
-        plot_view.setMinimumHeight(400)
-        plot_view.setTabPosition(QTabWidget.TabPosition.West)
         plotter = getattr(plotlib, self.result.name)(self.session.save_base)
 
         for p_name, p_func in plotter.figure_methods.items():
             figure_widget = self._make_single_figure(p_name, p_func)
-            plot_view.addTab(figure_widget, p_name.replace("_", " "))
-        self._layout.addWidget(plot_view)
+            self._plot_view.addTab(figure_widget, p_name.replace("_", " "))
 
     def _make_single_figure(self, plot_name: str, plot_function: Callable):
         try:

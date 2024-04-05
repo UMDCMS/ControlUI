@@ -336,7 +336,6 @@ class _QLogDisplay(QDialog):
         self.model = _QLogDisplay.LogTableModel(log_entries)
         self.table.setModel(self.model)
         self.__init_layout__()
-        print(self.model._table)
 
     def __init_layout__(self):
         self.setWindowTitle("Full message Log display")
