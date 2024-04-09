@@ -4,7 +4,7 @@ This is a discussion repository for the GUI design of the calibration process
 
 ## Quick setup instructions
 
-You system must have [`conda`][conda] installed, this setup has been tested
+Your system must have [`conda`][conda] installed, this setup has been tested
 mainly on Linux systems. Though Unix-like system should also work.
 
 ```bash
@@ -16,7 +16,7 @@ conda activate qca_control
 CC=$(which clang) CXX=$(which clang++) python3 -m pip install -e ./
 ```
 
-Once the install has been done you should be able to consistently setup the
+Once the installation is done you should be able to consistently set up the
 environment by starting the `conda` environment.
 
 ```bash
@@ -38,10 +38,10 @@ to be automatically presented to the user, consult the documentation in the
 [plotting](src/qcmanager/plotting).
 
 
-## Core developement philosophies
+## Core development philosophies
 
-As the QA/QC procedures will likely be continously evolving as we learn more
-about the tileboard systems, this repository attempts to incorperate the ideas
+As the QA/QC procedures will likely be continuously evolving as we learn more
+about the tileboard systems, this repository attempts to incorporate the ideas
 of the procedure codes being easy to define for physicists, while also being
 sufficiently rigid for GUI operators.
 
@@ -50,8 +50,8 @@ Some of the key ideas we are trying to include in the design of the software:
 ### Minimum prior knowledge
 
 Attempt to require minimum knowledge outside the typical HEP physicist tool
-kit. Python will be the key technology choosen for the flexibility. PyQt is
-choosen to drive the GUI interface, though we aim to have physicists interact
+kit. Python will be the key technology chosen for the flexibility. `PyQt` is
+chosen to drive the GUI interface, though we aim to have physicists interact
 with as little with this process as possible.
 
 ### Minimum editing
@@ -62,8 +62,8 @@ configurations files.
 
 ### Single truth
 
-As we anticipate that during the full QA/QC processes, tileboard my be moved to
-different stations with hardware capibilities, we want a single source of truth
+As we anticipate that during the full QA/QC processes, tileboard may be moved to
+different stations with hardware capabilities, we want a single source of truth
 of what measurements has been carried out by on the tileboard in question
 regardless of the hardware configuration.
 
@@ -74,7 +74,7 @@ of how these data formats are defined, see documentation in the
 
 ## Missing/Incomplete features:
 
-If there are any feature requests, feel free to add a issue on GitHub
+If there are any feature requests, feel free to add an issue on GitHub
 
 - Interface locking: certain buttons should be disabled when configurations are
   not met.
