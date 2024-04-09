@@ -1,19 +1,28 @@
 from typing import Iterable, Optional
 
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QWidget
 
 from ..session import Session
 
 
-class GUISession(Session):
+class GUISession(Session, QWidget):
     """
     Extended session object, as interactions with the GUI will require slight
     modifications to how the interfaces are handled. This will also contain the
     outermost widget to be used by the application window.
     """
 
+    # Global signals to ensure that display elements can be updated from any
+    # where. Use sparingly!
+    button_lock_signal = pyqtSignal(bool)
+    refresh_signal = pyqtSignal()
+
     def __init__(self):
-        super().__init__()
+        # Single super initialization does not work well with multiple
+        # inherience of QObjects
+        Session.__init__(self)
+        QWidget.__init__(self)
 
         # Additional flag for whether run-related buttons should be lock.
         # Buttons that should always check this flag is define as the
@@ -24,13 +33,17 @@ class GUISession(Session):
         # a user interruption signal
         self.interupt_flag: bool = False
 
-        # Object as the main window
-        self.main_container = QWidget()
-
         # Reference to the container that will be responsible for holding the
         # messages an progress bars, will need to be handle the layout
-        # initialization methods
+        # intialization methods
         self.message_container = None
+
+        def _update_lock(x: bool):
+            print("Setting lock status to", x)
+            self.run_lock = x
+            print("Setting lock status to", x, self.run_lock)
+
+        self.button_lock_signal.connect(_update_lock)
 
     def iterate(self, x: Iterable, *args, **kwargs):
         """
@@ -40,41 +53,3 @@ class GUISession(Session):
         """
         assert self.message_container is not None, "Message container not initialized"
         return self.message_container.iterate(x, *args, **kwargs)
-
-    """
-    Full interface update methods. Use sparingly, as these maybe expensive. We
-    cannot import the helper widget/containers here, so we will simply have to
-    point to the custom methods that we have created.
-    """
-
-    def refresh(self):
-        """
-        Forcing the update of children display elements. All elements that
-        requires refreshing should implement a `_display_update` method.
-        """
-
-        def recursive_update(element: QWidget):
-            """Recursively updating the various elements"""
-            if hasattr(element, "_display_update"):
-                element._display_update()
-            for child in element.children():
-                recursive_update(child)
-
-        recursive_update(self.main_container)
-
-    def lock_buttons(self, lock: Optional[bool] = None):
-        """
-        Setting disable flags for all the various buttons in the interface.
-        Button elements should implement the `_set_lock` method.
-        """
-        if lock is not None:
-            self.run_lock = lock
-
-        def recursive_lock(element: QWidget):
-            """Recursively updating the various elements"""
-            if hasattr(element, "_set_lock"):
-                element._set_lock()
-            for child in element.children():
-                recursive_lock(child)
-
-        recursive_lock(self.main_container)

@@ -21,6 +21,7 @@ def create_default_window() -> Tuple[QMainWindow, gui_session.GUISession]:
     session._hw_layout.addWidget(session.tb_panel)
     session._hw_layout.addWidget(session.temp_panel)
     session._hw_layout.addStretch()
+    session._hw_layout.setContentsMargins(0, 0, 0, 0)
 
     session._ses_layout = QVBoxLayout()
     session._ses_layout.addWidget(session.loader)
@@ -28,19 +29,21 @@ def create_default_window() -> Tuple[QMainWindow, gui_session.GUISession]:
     session._ses_layout.addWidget(session.singlerun)
     session._ses_layout.addWidget(session.message_container)
     session._ses_layout.addStretch()
+    session._ses_layout.setContentsMargins(0, 0, 0, 0)
 
     session._outer_layout = QHBoxLayout()
     session._outer_layout.addLayout(session._hw_layout, stretch=0)
     session._outer_layout.addLayout(session._ses_layout, stretch=3)
-    session.main_container.setLayout(session._outer_layout)
+    session._outer_layout.setContentsMargins(0, 0, 0, 0)
+    session.setLayout(session._outer_layout)
 
     # Setting up the main window to be returned
     window = QMainWindow()
-    window.setCentralWidget(session.main_container)
+    window.setCentralWidget(session)
 
     # Setting up the master layout methods
     window.setWindowTitle("SiPM-on-tileboard QA/QC control")
     window.setGeometry(1600, 1000, 1600, 1000)
-    session.refresh()
+    session.refresh_signal.emit()
 
     return window, session

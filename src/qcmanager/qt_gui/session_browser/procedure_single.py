@@ -132,12 +132,12 @@ class SingleProcedureTab(_QContainer):
 
     def _post_procedure(self):
         self.loginfo(f"Completed running {self.procedure_class.__name__}")
-        self.session.lock_buttons(False)
+        self.session.button_lock_signal.emit(False)
         # Clean up to ensure that all in-use items are cleaned up
         self.session.interupt_flag = False
         for pbar in self.session.message_container.progress_bars:
             pbar.clear()
-        self.session.refresh()
+        self.session.refresh_signal.emit()
 
     def revert_default(self):
         for _, input_widget, __ in self.input_map.values():

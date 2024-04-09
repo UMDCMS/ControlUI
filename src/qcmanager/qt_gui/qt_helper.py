@@ -62,6 +62,8 @@ class _QContainer(QWidget):
         super().__init__()
         self.session = session  # Reference to main session instance
 
+        self.session.refresh_signal.connect(self._display_update)
+
     @staticmethod
     def gui_action(f: Callable):
         """
@@ -204,6 +206,7 @@ class _QRunButton(QPushButton):
         # Other than the running flag, is the session correctly configured to
         # carry out this action? Default is to always set to be True
         self.session_config_valid = True
+        self.session.button_lock_signal.connect(self._set_lock)
 
     def run_connect(self, f: Callable, threaded=False):
         """
@@ -220,22 +223,23 @@ class _QRunButton(QPushButton):
                 self.setDisabled(True)
                 return
             # Locking buttons and releasing if not a threaded method
-            self.session.lock_buttons(True)
+            self.session.button_lock_signal.emit(True)
             f()
             if not threaded:
-                self.session.lock_buttons(False)
-                self.session.refresh()
+                self.session.button_lock_signal.emit(False)
+                # Do not explicitly set refres here??
+                # self.session.refresh_signal.emit()
 
         self.clicked.connect(_wrap)
 
     def _display_update(self):
-        if self.session.run_lock:
+        self._set_lock(self.session.run_lock)
+
+    def _set_lock(self, lock_status):
+        if lock_status is True:
             self.setDisabled(True)
         else:
             self.setEnabled(self.session_config_valid)
-
-    def _set_lock(self):
-        self._display_update()
 
 
 class _QInteruptButton(QPushButton):
