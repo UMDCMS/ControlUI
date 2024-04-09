@@ -29,9 +29,6 @@ python3 ./bin/run_cli.py --help
   dependencies on certain packages, you will need to remove the following line
   in the `environment.yml` when installing on an OSX machine:
   - `qt-wayland=5.15.8`: The wayland server is only required for Linux systems
-  - `clang`: C/C++ file must be compiled with the system clang; conda clang
-    will give you cryptic error messages that I don't quite understand how to
-    solve just yet.
 
 ## Adding procedures (for physicists)
 
