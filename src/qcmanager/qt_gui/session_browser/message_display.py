@@ -5,15 +5,14 @@ from typing import Dict, Iterable, List, Optional
 
 import tqdm
 from PyQt5.QtCore import QAbstractTableModel, QObject, Qt, pyqtSignal
+from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
     QDialog,
     QGridLayout,
     QHeaderView,
     QLabel,
-    QProgressBar,
     QTableView,
     QVBoxLayout,
-    QWidget,
 )
 
 from ...utils import timestampg
@@ -21,20 +20,16 @@ from ..gui_session import GUISession
 from ..qt_helper import _QContainer
 
 
-class _QPBarContainer(_QContainer):
+class _QSignalTQDM(QObject):
     """
-    Progress bar widget that can be used for object looping, like with TQDM.
-    because we need the a QObject to generate signals, and QObject do not
-    support multiple inheritance, we will create 2 helper classes:
+    A TQDM wrapper that can emit and receive pyqt signals. Because these
+    objects will need to be spawned in separate threads, this object is written
+    as a standalone object without any ties to display elements. The display
+    elements will need to connect with the various iterating signals.
+    """
 
-        - _WrapTQDM for wrapping the extended TQDM object that can be used for
-          iterating. Reusing TQDM methods ensures GUI design choices such as
-          debouncing have been properly handled. Aside from the usual
-          construction arguments that is passed to the TQDM instance, this will
-          require a reference to the "signaller" class defined below
-        - _QSignallerTQDM: for main object used to generate the pyqtSignals when
-          iterating over a collection.
-    """
+    progress = pyqtSignal(int)
+    clear = pyqtSignal()
 
     class _WrapTQDM(tqdm.tqdm):
         def __init__(self, signal, *args, **kwargs):
@@ -45,86 +40,143 @@ class _QPBarContainer(_QContainer):
             super().update(n)
             self._signal.progress.emit(self.n)
 
-    class _QSignaller(QObject):
-        progress = pyqtSignal(int)
-        clear = pyqtSignal()
+        """
+        Disabling the CLI display function, to not litter the command line
+        output
+        """
 
-        def __init__(self, session: GUISession, x: Iterable, *args, **kwargs):
-            super().__init__()
-            self.tqdm_bar = _QPBarContainer._WrapTQDM(self, x, *args, **kwargs)
-            # Add reference to main session object to capture the various signals
-            self.session = session
+        def refresh(self, no_lock=False, lock_args=None):
+            return
 
-        def __iter__(self):
-            # main iteration class that is used to generate the signals. Mimicking
-            # the structure and signal of the tqdm.std.__iter__ method:
-            # See here:
-            # https://github.com/tqdm/tqdm/blob/master/tqdm/std.py#L1160
-            try:
-                # Sending a zero signal to ensure that the display items are
-                # properly refreshed
-                self.progress.emit(0)
-                for idx, x in enumerate(self.tqdm_bar):
-                    if self.session.interupt_flag:
-                        raise KeyboardInterrupt("Interupted by user!!")
-                    yield x
-            finally:
-                self.clear.emit()
+        def close(self):
+            return
 
-    def __init__(self, session: GUISession):
-        super().__init__(session)
+    def __init__(self, session: GUISession, x: Iterable, *args, **kwargs):
+        super().__init__()
+        self.tqdm_bar = _QSignalTQDM._WrapTQDM(self, x, *args, **kwargs)
+        # Additional flag to allow for interupt signals
+        self.interupt: bool = False
+        # Setting the signal connection
+        self.session = session
+        self.session.interupt_signal.connect(self.receive_interupt)
 
-        # Display elements
-        self.desc_label = QLabel("")
-        self.pbar_widget = QProgressBar()
-        # Item that stores the iteratable in TQDM
-        self.tqdm: Optional[_QPBarContainer._WrapTQDM] = None
-        self.signal_instance: Optional[_QPBarContainer._QSignaller] = None
+    def __iter__(self):
+        # main iteration class that is used to generate the signals. Mimicking
+        # the structure and signal of the tqdm.std.__iter__ method:
+        # See here:
+        # https://github.com/tqdm/tqdm/blob/master/tqdm/std.py#L1160
+        try:
+            # Sending a zero signal to ensure that the display items are
+            # properly refreshed
+            self.progress.emit(0)
+            for x in self.tqdm_bar:
+                if self.session.interupt_flag:
+                    raise KeyboardInterrupt("Interupted by user!!")
+                yield x
+            # Sedding final signal at the end of the loop
+            self.progress.emit(self.tqdm_bar.total)
+        finally:
+            self.clear.emit()
 
-    def __init_layout__(self):
-        # No explicit layout would be added here. As the display elements would
-        # most likely set want to be the set by the solution
-        self.pbar_label.setStyleSheet("font-family: monospace")
+    # This method does not work??? WHY??
+    def receive_interupt(self):
+        print("Recieved interupt signal!!!")
+        self.interupt = True
 
-    def prepare(self, x: Iterable, *args, **kwargs):
-        self.in_use = True
-        # Creating the signaller instance, and add reference to tqdm object
-        self.signal_instance = _QPBarContainer._QSignaller(
-            self.session, x, *args, **kwargs
-        )
-        self.tqdm = self.signal_instance.tqdm_bar
 
-        # Setting the display elements to be visible
-        self.desc_label.show()
-        self.pbar_widget.show()
+class _QPBarHandler:
+    """
+    Display elements of the a wrapped TQDM object. Because the TQDM instances
+    are expected to be ran in a separate thread, the iterate method should not
+    be attached to the main containers. So we need to expose the iterate method
+    as a series of callable objects. Here expose one of such callable objects.
+    For some reason, the graphical QProgressBar object has many issues with
+    threading, here we are going to use a text-based display of the progress
+    bar as a work around. (Can we properly fix this??)
+    """
+
+    def __init__(
+        self,
+        session: GUISession,
+        desc_label: QLabel,
+        progress_bar: QLabel,
+        stat_label: QLabel,
+    ):
+        # For global signal parsing
+        self.session = session
+        # Display elements - These should be initialized elsewhere to ensure
+        # that they can be passed around different threads
+        self.desc_label = desc_label
+        self.progress_bar = progress_bar
+        self.stat_label = stat_label
+        # Flag to indicate that there are connect signals
+        self.signal: Optional[_QSignalTQDM] = None
+        self.tqdm: Optional[_QSignalTQDM._WrapTQDM] = None
+
+    def connect(self, signal: _QSignalTQDM):
+        """
+        Call method for spawning in the tqdm instance, also connecting the
+        various signal instances, for the spawned in instance
+        """
+        self.signal = signal
+        self.tqdm = self.signal.tqdm_bar
+
+        # Initial setups
         self.desc_label.setText(self.tqdm.desc)
-        self.pbar_widget.setMaximum(self.tqdm.total)
+        self.desc_label.setFont(self.make_font(hint=QFont.SansSerif, name="Sans Serif"))
+        self.progress_bar.setText("")
+        self.progress_bar.setFont(
+            self.make_font(hint=QFont.TypeWriter, name="Monospace")
+        )
+        self.stat_label.setText("")
+        self.stat_label.setFont(self.make_font(hint=QFont.TypeWriter, name="Monospace"))
 
-        # Connecting the signals to display element update
-        self.signal_instance.progress.connect(self.progress)
-        self.signal_instance.clear.connect(self.clear)
+        # Iterative update signals
+        self.signal.progress.connect(self.progress)
+        self.signal.clear.connect(self.clear)
 
-        # Returning the iterable signal object, as this is the object that is
-        # used to generate the approprate signals.
-        return self.signal_instance
+        # General update
+        self.session.interupt_signal.connect(self.signal.receive_interupt)
 
     @_QContainer.gui_action
-    def progress(self, x):
-        self.pbar_widget.setValue(self.tqdm.n)
-
-        # Getting the display text using the tqdm format bar
+    def progress(self, n: int):
+        # Setting the main graphical elements
         format_dict = {k: v for k, v in self.tqdm.format_dict.items()}
-        format_dict["ncols"] = 0  # Length 0 / stat only progress bar
-        pbar_str = self.tqdm.format_meter(**format_dict)
-        pbar_str = pbar_str[len(self.tqdm.desc) + 1 :]
+        format_dict["ncols"] = 0  # Length 0 for only stat bar
+        format_dict["prefix"] = ""
+        self.stat_label.setText(self.tqdm.format_meter(**format_dict))
 
-        self.pbar_widget.setFormat(pbar_str)
-        self.pbar_widget.setStyleSheet("font-family: monospace")
+        complete = int(n / self.tqdm.total * 100)
+        remain = 100 - complete
+        self.progress_bar.setText("[" + "#" * complete + "-" * remain + "]")
 
+    @_QContainer.gui_action
     def clear(self):
-        self.in_use = False
-        self.desc_label.hide()
-        self.pbar_widget.hide()
+        # Hiding the various display elements
+        self.desc_label.setText("")
+        self.desc_label.setFont(self.make_font(name="Sans Serif", size=1))
+        self.progress_bar.setText("")
+        self.progress_bar.setFont(self.make_font(name="Monospace", size=1))
+        self.stat_label.setText("")
+        self.stat_label.setFont(self.make_font(name="Monospace", size=1))
+        if self.signal is not None:
+            self.signal.progress.disconnect()
+            self.signal.clear.disconnect()
+            self.signal.deleteLater()
+            self.signal = None
+
+    @classmethod
+    def make_font(cls, hint=None, size=None, name=None):
+        font = QFont(name)
+        if hint is not None:
+            font.setStyleHint(hint)
+        if size is not None:
+            font.setPointSize(size)
+        return font
+
+    @property
+    def in_use(self):
+        return self.signal is not None
 
 
 class _QLabelHandler(logging.Handler):
@@ -192,9 +244,11 @@ class SessionMessageDisplay(_QContainer):
         self.program_warn = QLabel("")
         self.program_error = QLabel("")
         self.program_misc = QLabel("")
-        self.progress_bars: List[_QPBarContainer] = [
-            _QPBarContainer(self.session) for _ in range(6)
-        ]
+
+        self.progress_handlers: List[_QPBarHandler] = [
+            _QPBarHandler(self.session, QLabel("A"), QLabel("B"), QLabel("C"))
+            for _ in range(6)
+        ]  # Will never need for than 6 progress bars?
 
         self.__init_layout__()
         self.__init_logger__()
@@ -206,34 +260,40 @@ class SessionMessageDisplay(_QContainer):
         #
         self._program_error_head = QLabel("Errors")
         self._layout.addWidget(self._program_error_head, 0, 1)
-        self._layout.addWidget(self.program_error, 0, 2)
+        self._layout.addWidget(self.program_error, 0, 2, 1, 2)
         self._program_error_head.setStyleSheet("background-color: red")
+        self.program_error.setWordWrap(True)
 
         self._program_warn_head = QLabel("Warnings")
         self._layout.addWidget(self._program_warn_head, 1, 1)
-        self._layout.addWidget(self.program_warn, 1, 2)
+        self._layout.addWidget(self.program_warn, 1, 2, 1, 2)
         self._program_warn_head.setStyleSheet("background-color: orange")
+        self.program_warn.setWordWrap(True)
 
         self._program_info_head = QLabel("Info.")
         self._layout.addWidget(self._program_info_head, 2, 1)
-        self._layout.addWidget(self.program_info, 2, 2)
+        self._layout.addWidget(self.program_info, 2, 2, 1, 2)
         self._program_info_head.setStyleSheet("background-color: green")
+        self.program_info.setWordWrap(True)
 
         self._program_misc_head = QLabel("Misc.")
         self._layout.addWidget(self._program_misc_head, 3, 1)
-        self._layout.addWidget(self.program_misc, 3, 2)
+        self._layout.addWidget(self.program_misc, 3, 2, 1, 2)
+        self.program_misc.setWordWrap(True)
 
         self._layout.addWidget(QLabel("GUI messages"), 4, 0)
-        self._layout.addWidget(self.gui_message, 4, 1, 1, 2)
+        self._layout.addWidget(self.gui_message, 4, 1, 1, 3)
 
-        for index, p in enumerate(self.progress_bars):
+        for index, p in enumerate(self.progress_handlers):
             self._layout.addWidget(p.desc_label, 5 + index, 0, 1, 2)
-            self._layout.addWidget(p.pbar_widget, 5 + index, 1, 1, 2)
+            self._layout.addWidget(p.progress_bar, 5 + index, 1, 1, 2)
+            self._layout.addWidget(p.stat_label, 5 + index, 3, 1, 1)
             p.clear()
 
         self._layout.setColumnStretch(0, 1)
         self._layout.setColumnStretch(1, 1)
-        self._layout.setColumnStretch(2, 20)
+        self._layout.setColumnStretch(2, 5)
+        self._layout.setColumnStretch(3, 1)
         self.setLayout(self._layout)
 
     def __init_logger__(self):
@@ -256,28 +316,18 @@ class SessionMessageDisplay(_QContainer):
         prog_logger.addHandler(self.memhandle)
         self.program_head.mousePressEvent = self.show_full_message_log
 
-    def make_new_pcontainer(self) -> _QPBarContainer:
-        p_item = _QPBarContainer(self.session)
-        self._layout.addWidget(p_item.desc_label, 2 + len(self.progress_bars), 0)
-        self._layout.addWidget(p_item.pbar_widget, 2 + len(self.progress_bars), 1)
-        self.progress_bars.append(p_item)
-        return self.progress_bars[-1]
-
-    def iterate(self, x: Iterable, *args, **kwargs):
+    def iterate(self, iterable, *args, **kwargs):
         """
-        The progress bar containers cannot be initialized here due to import
-        restrictions. The main constructer must make sure that the main session
-        Qwidget points to this class method
+        Returning the first progress bar handler that is currently not being used
         """
+        tqdm_instance = _QSignalTQDM(self.session, iterable, *args, **kwargs)
 
-        def _get_first_unused() -> _QPBarContainer:
-            for p in self.progress_bars:
-                if not p.in_use:
-                    return p
-            return self.make_new_pcontainer()
-
-        p_item = _get_first_unused()
-        return p_item.prepare(x, *args, **kwargs)
+        for handler in self.progress_handlers:
+            if not handler.in_use:
+                handler.connect(tqdm_instance)
+                break
+        # TODO: What should be done if more than 6 progress bars are spawned??
+        return tqdm_instance
 
     def show_full_message_log(self, event=None):
         dialog = _QLogDisplay(self.memhandle._log)
