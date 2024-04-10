@@ -517,7 +517,6 @@ class ProcudureSummaryList(_QContainer):
             self.message_label.hide()
             self.table_model = ProcedureTableModel(self.session.results)
             self.table_view.setModel(self.table_model)
-            self.display_detailed_signal.emit(1)
 
     def display_detail(self, item):
         self.display_detailed_signal.emit(item.row())
