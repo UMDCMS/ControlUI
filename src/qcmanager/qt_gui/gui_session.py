@@ -39,9 +39,7 @@ class GUISession(Session, QWidget):
         self.message_container = None
 
         def _update_lock(x: bool):
-            print("Setting lock status to", x)
             self.run_lock = x
-            print("Setting lock status to", x, self.run_lock)
 
         self.button_lock_signal.connect(_update_lock)
 
