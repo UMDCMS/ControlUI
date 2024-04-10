@@ -197,10 +197,8 @@ class SessionLoader(_QContainer):
         if self._has_session():
             if self._confirm_load_session():
                 self.session.from_blank(board_type=board_type, board_id=board_id)
-                self.session.refresh_signal.emit()
         else:
             self.session.from_blank(board_type=board_type, board_id=board_id)
-            self.session.refresh_signal.emit()
 
     @_QContainer.gui_action
     def load_existing(self, event=None):
@@ -214,10 +212,8 @@ class SessionLoader(_QContainer):
         if self._has_session():
             if self._confirm_load_session():
                 self.session.load_yaml(target_yaml)
-                self.session.refresh_signal.emit()
         else:
             self.session.load_yaml(target_yaml)
-            self.session.refresh_signal.emit()
 
     def _has_session(self):
         return self.session.board_id != "" or self.session.board_type != ""
