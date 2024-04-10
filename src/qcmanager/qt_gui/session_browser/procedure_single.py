@@ -23,7 +23,6 @@ from ..qt_helper import (
     _QComboPlaceholder,
     _QContainer,
     _QDoubleSpinBoxDefault,
-    _QInteruptButton,
     _QLineEditDefault,
     _QRunButton,
     _QSpinBoxDefault,
@@ -89,8 +88,9 @@ class SingleProcedureTab(_QContainer):
     def _display_update(self):
         # Run button must only be enabled if the session is actually loaded
         self.run_button.session_config_valid = (
-            self.session.board_id != "" or self.session.board_type != ""
+            self.session.board_id != "" and self.session.board_type != ""
         )
+        self.run_button._display_update()
         # TODO: disable button if hardware requirements are not met?
 
         # Rebuild every time a refresh is requested as the inputs may contain
@@ -125,19 +125,10 @@ class SingleProcedureTab(_QContainer):
             },
         )
         # Additional items to run after thread has completed
-        self._thread.finished.connect(self._post_procedure)
+        self._thread.finished.connect(self.run_button._post_run)
         self._thread.finished.connect(self._thread.deleteLater)
         # Starting the execution thread
         self._thread.start()
-
-    def _post_procedure(self):
-        self.loginfo(f"Completed running {self.procedure_class.__name__}")
-        self.session.button_lock_signal.emit(False)
-        # Clean up to ensure that all in-use items are cleaned up
-        self.session.interupt_flag = False
-        for pbar in self.session.message_container.progress_bars:
-            pbar.clear()
-        self.session.refresh_signal.emit()
 
     def revert_default(self):
         for _, input_widget, __ in self.input_map.values():
@@ -260,10 +251,14 @@ class SessionRunSingleProcedure(_QContainer):
     def __init__(self, session: GUISession):
         super().__init__(session)
 
-        self.interupt_button = _QInteruptButton(session, "INTERUPT")
+        self.interupt_button = QPushButton("INTERUPT")
         self.tabs = QTabWidget()
         self.__init_layout__()
-        self.interupt_button.clicked.connect(self.send_interupt)
+        self._display_update()
+
+        # Additional signal connect
+        self.session.button_lock_signal.connect(self.set_interupt_lock)
+        self.interupt_button.clicked.connect(self.emit_interupt)
 
     def __init_layout__(self):
         self._outer = QVBoxLayout()
@@ -280,6 +275,11 @@ class SessionRunSingleProcedure(_QContainer):
         self._inner.addWidget(self.tabs)
         self._inner.addWidget(self.interupt_button)
 
-    def send_interupt(self):
-        """Interupt the current running process"""
-        self.session.interupt_flag = True
+    def _display_update(self):
+        self.interupt_button.setEnabled(self.session.run_lock)
+
+    def set_interupt_lock(self):
+        self.interupt_button.setEnabled(self.session.run_lock)
+
+    def emit_interupt(self):
+        self.session.interupt_signal.emit()
