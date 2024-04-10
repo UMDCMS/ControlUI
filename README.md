@@ -5,7 +5,8 @@ This is a discussion repository for the GUI design of the calibration process
 ## Quick setup instructions
 
 Your system must have [`conda`][conda] installed, this setup has been tested
-mainly on Linux systems. Though Unix-like system should also work.
+mainly on Linux systems. Though Unix-like system should also work: this
+includes OSX and WLS2 for Windows users.
 
 ```bash
 git clone http://github.com/yimuchen/gui_example
@@ -26,9 +27,18 @@ python3 ./bin/run_cli.py --help
 ```
 
 - *Some catches installing on OSX*: because we cannot set up programmable
-  dependencies on certain packages, you will need to remove the following line
-  in the `environment.yml` when installing on an OSX machine:
-  - `qt-wayland=5.15.8`: The wayland server is only required for Linux systems
+  dependencies on certain packages. You will need to make sure that the [Xcode
+  command line tools][xcode] are properly installed (This should already be the
+  case if you have installed [Homebrew][brew]). Then  you will need to remove the
+  following lines in the `environment.yml` when installing on an OSX
+  machine:
+  - `qt-wayland=5.15.8`: The wayland server is only required for Linux systems,
+    no additional management system is required for `PyQt5` running on OSX.
+  - `clang++=17`: OSX has trouble using compilers defined by clang. Using the
+    system clang should be OK for our use case. 
+
+[xcode]:https://mac.install.guide/commandlinetools/4
+[brew]: https://brew.sh/
 
 ## Adding procedures (for physicists)
 
