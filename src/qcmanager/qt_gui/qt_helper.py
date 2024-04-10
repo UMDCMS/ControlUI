@@ -1,5 +1,6 @@
 import functools
 import logging
+import time
 import traceback
 from typing import Callable, List
 
@@ -62,6 +63,12 @@ class _QContainer(QWidget):
         super().__init__()
         self.session = session  # Reference to main session instance
 
+        # On refresh signals, this wrapper methods ensures that there will not
+        # be multiple refreshs being called to the same object. Subsequent
+        # methods should overload the self._display_update method
+        self._refresh_lock = False
+        self.session.refresh_signal.connect(self.__display_update_debounce)
+
         self.session.refresh_signal.connect(self._display_update)
 
     @staticmethod
@@ -80,6 +87,17 @@ class _QContainer(QWidget):
                 logging.getLogger("GUI").error(str(err))
 
         return _wrap
+
+    def __display_update_debounce(self):
+        while self._refresh_lock is True:
+            time.sleep(0.001)  # 1ms intervals should be fast enough
+
+        self._refresh_lock = True
+        try:
+            self._display_update()
+        finally:
+            # Regardless of whether the display update is sucessful, always release the lock
+            self._refresh_lock = False
 
     def _display_update(self):
         """
