@@ -14,9 +14,10 @@ class GUISession(Session, QWidget):
     """
 
     # Global signals to ensure that display elements can be updated from any
-    # where. Use sparingly!
+    # where. Use sparingly and carefully!
     button_lock_signal = pyqtSignal(bool)
     refresh_signal = pyqtSignal()
+    interupt_signal = pyqtSignal()
 
     def __init__(self):
         # Single super initialization does not work well with multiple
@@ -29,8 +30,7 @@ class GUISession(Session, QWidget):
         # _QRunButton.
         self.run_lock: bool = False
 
-        # Addtional flag to indicate whether a process should be terminated by
-        # a user interruption signal
+        # Additional flag for monitoring interuption flag
         self.interupt_flag: bool = False
 
         # Reference to the container that will be responsible for holding the
@@ -42,6 +42,11 @@ class GUISession(Session, QWidget):
             self.run_lock = x
 
         self.button_lock_signal.connect(_update_lock)
+
+        def _interupt():
+            self.interupt_flag = True
+
+        self.interupt_signal.connect(_interupt)
 
     def iterate(self, x: Iterable, *args, **kwargs):
         """

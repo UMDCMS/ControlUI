@@ -208,7 +208,7 @@ class _QRunButton(QPushButton):
         self.session_config_valid = True
         self.session.button_lock_signal.connect(self._set_lock)
 
-    def run_connect(self, f: Callable, threaded=False):
+    def run_connect(self, run_call: Callable, threaded=False):
         """
         Additional wrapper the callable action which ensures that the interface
         is properly locked the the run call is created. The threaded flag is
@@ -219,18 +219,21 @@ class _QRunButton(QPushButton):
 
         def _wrap(event):
             if self.session.run_lock:
-                # Early return if this somehow slipped past run_lock
                 self.setDisabled(True)
                 return
             # Locking buttons and releasing if not a threaded method
             self.session.button_lock_signal.emit(True)
-            f()
+            self.session.interupt_flag = False
+            run_call()
             if not threaded:
-                self.session.button_lock_signal.emit(False)
-                # Do not explicitly set refres here??
-                # self.session.refresh_signal.emit()
+                self._post_run()
 
         self.clicked.connect(_wrap)
+
+    def _post_run(self):
+        self.session.interupt_flag = False  # Always try to release the flag
+        self.session.button_lock_signal.emit(False)
+        self.session.refresh_signal.emit()
 
     def _display_update(self):
         self._set_lock(self.session.run_lock)
@@ -240,20 +243,3 @@ class _QRunButton(QPushButton):
             self.setDisabled(True)
         else:
             self.setEnabled(self.session_config_valid)
-
-
-class _QInteruptButton(QPushButton):
-    """
-    Buttons to only be enabled after global run_lock is set to true. The logic
-    for how this should be handled by the implementing class and not here.
-    """
-
-    def __init__(self, session: GUISession, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.session = session
-
-    def _display_update(self):
-        self.setEnabled(self.session.run_lock)
-
-    def _set_lock(self):
-        self._display_update()
