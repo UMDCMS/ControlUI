@@ -90,7 +90,7 @@ class _QContainer(QWidget):
 
     def __display_update_debounce(self):
         while self._refresh_lock is True:
-            time.sleep(0.001)  # 1ms intervals should be fast enough
+            time.sleep(0.01)  # 1ms intervals should be fast enough
 
         self._refresh_lock = True
         try:
