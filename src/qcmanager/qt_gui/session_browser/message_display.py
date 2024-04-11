@@ -1,6 +1,7 @@
 import collections
 import datetime
 import logging
+import math
 from typing import Dict, Iterable, List, Optional
 
 import tqdm
@@ -148,7 +149,7 @@ class _QPBarHandler:
         template = "background: qlineargradient(x1:0, x2:1, {stops})"
         stops = [(0, self.foreground), (percent, self.foreground), (1, self.background)]
         if percent != 1:
-            stops.insert(2, (percent + 0.000001, self.background))
+            stops.insert(2, (math.nextafter(percent, 1), self.background))
         cast = lambda x: f"stop: {x[0]} {x[1]}"
         sheet = template.format(stops=",".join([cast(x) for x in stops]))
         self.progress_bar.setStyleSheet(sheet)
