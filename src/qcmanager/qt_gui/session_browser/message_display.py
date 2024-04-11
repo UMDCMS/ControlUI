@@ -95,23 +95,20 @@ class _QPBarHandler:
     bar as a work around. (Can we properly fix this??)
     """
 
-    def __init__(
-        self,
-        session: GUISession,
-        desc_label: QLabel,
-        progress_bar: QLabel,
-        stat_label: QLabel,
-    ):
+    def __init__(self, session: GUISession, foreground="#8888FF", background="#888888"):
         # For global signal parsing
         self.session = session
         # Display elements - These should be initialized elsewhere to ensure
         # that they can be passed around different threads
-        self.desc_label = desc_label
-        self.progress_bar = progress_bar
-        self.stat_label = stat_label
-        # Flag to indicate that there are connect signals
+        self.desc_label = QLabel("")
+        self.progress_bar = QLabel("")
+        self.stat_label = QLabel("")
+        self.foreground = foreground
+        self.background = background
+        # Pointer objects to the signals generators
         self.signal: Optional[_QSignalTQDM] = None
         self.tqdm: Optional[_QSignalTQDM._WrapTQDM] = None
+        self.clear()
 
     def connect(self, signal: _QSignalTQDM):
         """
@@ -123,13 +120,13 @@ class _QPBarHandler:
 
         # Initial setups
         self.desc_label.setText(self.tqdm.desc)
-        self.desc_label.setFont(self.make_font(hint=QFont.SansSerif, name="Sans Serif"))
+        self.desc_label.setFont(self.make_font())
         self.progress_bar.setText("")
-        self.progress_bar.setFont(
-            self.make_font(hint=QFont.TypeWriter, name="Monospace")
-        )
+        self.progress_bar.setFont(self.make_font())
+        self.progress_bar.setAlignment(Qt.AlignCenter)
+
         self.stat_label.setText("")
-        self.stat_label.setFont(self.make_font(hint=QFont.TypeWriter, name="Monospace"))
+        self.stat_label.setFont(self.make_font())
 
         # Iterative update signals
         self.signal.progress.connect(self.progress)
@@ -146,19 +143,28 @@ class _QPBarHandler:
         format_dict["prefix"] = ""
         self.stat_label.setText(self.tqdm.format_meter(**format_dict))
 
-        complete = int(n / self.tqdm.total * 100)
-        remain = 100 - complete
-        self.progress_bar.setText("[" + "#" * complete + "-" * remain + "]")
+        # Setting up the gradient style sheel
+        percent = n / self.tqdm.total
+        template = "background: qlineargradient(x1:0, x2:1, {stops})"
+        stops = [(0, self.foreground), (percent, self.foreground), (1, self.background)]
+        if percent != 1:
+            stops.insert(2, (percent + 0.000001, self.background))
+        cast = lambda x: f"stop: {x[0]} {x[1]}"
+        sheet = template.format(stops=",".join([cast(x) for x in stops]))
+        self.progress_bar.setStyleSheet(sheet)
+        self.progress_bar.setText(f"{n}/{self.tqdm.total}  [{percent*100:.1f}%]")
 
     @_QContainer.gui_action
     def clear(self):
         # Hiding the various display elements
         self.desc_label.setText("")
-        self.desc_label.setFont(self.make_font(name="Sans Serif", size=1))
+        self.desc_label.setFont(self.make_font(size=1))
         self.progress_bar.setText("")
-        self.progress_bar.setFont(self.make_font(name="Monospace", size=1))
+        self.progress_bar.setFont(self.make_font(size=1))
+        self.progress_bar.setStyleSheet("")
         self.stat_label.setText("")
-        self.stat_label.setFont(self.make_font(name="Monospace", size=1))
+        self.stat_label.setFont(self.make_font(size=1))
+        self.stat_label.setStyleSheet("")
         if self.signal is not None:
             self.signal.progress.disconnect()
             self.signal.clear.disconnect()
@@ -166,10 +172,8 @@ class _QPBarHandler:
             self.signal = None
 
     @classmethod
-    def make_font(cls, hint=None, size=None, name=None):
-        font = QFont(name)
-        if hint is not None:
-            font.setStyleHint(hint)
+    def make_font(cls, size=None):
+        font = QFont("Sans Serif")
         if size is not None:
             font.setPointSize(size)
         return font
@@ -246,8 +250,7 @@ class SessionMessageDisplay(_QContainer):
         self.program_misc = QLabel("")
 
         self.progress_handlers: List[_QPBarHandler] = [
-            _QPBarHandler(self.session, QLabel("A"), QLabel("B"), QLabel("C"))
-            for _ in range(6)
+            _QPBarHandler(self.session) for _ in range(6)
         ]  # Will never need for than 6 progress bars?
 
         self.__init_layout__()
@@ -290,10 +293,10 @@ class SessionMessageDisplay(_QContainer):
             self._layout.addWidget(p.stat_label, 5 + index, 3, 1, 1)
             p.clear()
 
-        self._layout.setColumnStretch(0, 1)
-        self._layout.setColumnStretch(1, 1)
-        self._layout.setColumnStretch(2, 5)
-        self._layout.setColumnStretch(3, 1)
+        self._layout.setColumnStretch(0, 2)  # Header
+        self._layout.setColumnStretch(1, 1)  # Message header
+        self._layout.setColumnStretch(2, 8)  # Main content
+        self._layout.setColumnStretch(3, 3)  # Progress bar hea
         self.setLayout(self._layout)
 
     def __init_logger__(self):
