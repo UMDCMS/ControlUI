@@ -9,7 +9,7 @@ dependencies:
   - pybind11
   # Python requirements - Pinning to older version of package for now
   # Explicit requirements should be listed in the
-  - python=3.10 # Pinning to python3.10 for now
+  - python=3.11 # Pinning to python3.11 for now
   - numpy
   - scipy
   # QT required for GUI

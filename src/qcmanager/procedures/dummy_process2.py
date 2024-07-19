@@ -35,8 +35,9 @@ class dummy_process2(ProcedureBase):
         self.loginfo(f"Loading previous content: {len(numpy.load(self.comp_file))}")
 
         for _ in iterate(range(self.outer_size), desc="Outer Looping"):
-            self.loginfo(f"Logging once per outer ({_ +1 })")
+            self.logwarn(f"Logging once per outer ({_ +1 })")
             for __ in iterate(range(self.inner_size), desc="Inner loop"):
+                self.loginfo(f"Logging once per inner ({__ +1 })")
                 time.sleep(self.pause)
 
         with self.open_text_file("mytest.txt", desc="Just for demonstration") as f:
